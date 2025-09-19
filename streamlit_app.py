@@ -44,10 +44,10 @@ with open("aoi.json", "r") as f:
 # Date Filter
 # -------------------
 st.sidebar.header("📅 Date Filter")
-min_date, max_date = df['date'].min(), df['date'].max()
+min_date, max_date = df['date'].min().date(), df['date'].max().date()
 
-start_date = st.sidebar.date_input("Start Date", min_date)
-end_date = st.sidebar.date_input("End Date", max_date)
+start_date = st.sidebar.date_input("Start Date", min_value=min_date, max_value=max_date, value=min_date)
+end_date = st.sidebar.date_input("End Date", min_value=min_date, max_value=max_date, value=max_date)
 
 mask = (df['date'].dt.date >= start_date) & (df['date'].dt.date <= end_date)
 df = df.loc[mask]
@@ -93,7 +93,7 @@ with left:
     fig_village.update_layout(
         margin=dict(l=10, r=10, t=30, b=120),
         height=500,
-        plot_bgcolor="black",  # remove container color
+        plot_bgcolor="black",
         paper_bgcolor="black",
         font=dict(color="white"),
         xaxis=dict(tickangle=-30, automargin=True),
@@ -115,11 +115,16 @@ with left:
     fig_block.update_layout(
         margin=dict(l=10, r=10, t=30, b=80),
         height=450,
-        plot_bgcolor="black",  # remove container color
+        plot_bgcolor="black",
         paper_bgcolor="black",
         font=dict(color="white"),
-        xaxis=dict(tickangle=-30, automargin=True)
+        xaxis=dict(
+            tickangle=-30,
+            automargin=True,
+            fixedrange=False
+        )
     )
+    fig_block.update_xaxes(rangeslider_visible=True)  # supaya bisa geser sampai ujung kanan
     st.plotly_chart(fig_block, use_container_width=True)
 
 # --- Center Column: Map ---
