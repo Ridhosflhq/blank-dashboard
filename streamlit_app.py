@@ -67,25 +67,29 @@ with col2:
 left, center, right = st.columns([1, 2, 1.3])
 
 with left:
-    st.subheader("🔥 Fires per Village")
-    fig_village = px.bar(
-        village_count, x="Village", y="Fire Events", color="Village",
-        template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Set2
+   st.subheader("🔥 Fires per Village")
+fig_village = px.bar(
+    village_count, x="Village", y="Fire Events", color="Village",
+    template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Set2
+)
+fig_village.update_layout(
+    margin=dict(l=10, r=10, t=30, b=50),
+    plot_bgcolor="#44444E",
+    paper_bgcolor="#44444E",
+    font=dict(color="white"),
+    xaxis=dict(
+        tickangle=0,          # biar horizontal
+        automargin=True,      # kasih margin otomatis
+    ),
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=-0.4,
+        xanchor="center",
+        x=0.5
     )
-    fig_village.update_layout(
-        margin=dict(l=10, r=10, t=30, b=50),  # lebih besar bawah buat legend
-        plot_bgcolor="#44444E",
-        paper_bgcolor="#44444E",
-        font=dict(color="white"),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.4,
-            xanchor="center",
-            x=0.5
-        )
-    )
-    st.plotly_chart(fig_village, use_container_width=True)
+)
+st.plotly_chart(fig_village, use_container_width=True)
 
     st.subheader("🔥 Fires per Block per Month")
     fig_block = px.bar(
@@ -110,49 +114,49 @@ with left:
 with center:
     st.subheader("🗺️ Fire Hotspot Map")
 
-    # Tambah pilihan basemap
-    basemap = st.selectbox(
-        "Choose Basemap",
-        ["Dark", "Light", "Satellite", "Streets"],
-        index=0
-    )
+basemap = st.selectbox(
+    "Choose Basemap",
+    ["OpenStreetMap", "Satellite", "Dark", "Light", "Streets"],
+    index=0
+)
 
-    map_styles = {
-        "Dark": "mapbox://styles/mapbox/dark-v9",
-        "Light": "mapbox://styles/mapbox/light-v9",
-        "Satellite": "mapbox://styles/mapbox/satellite-v9",
-        "Streets": "mapbox://styles/mapbox/streets-v11"
-    }
+# pakai MapTiler/Carto/OSM style URL
+map_styles = {
+    "OpenStreetMap": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+    "Dark": "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+    "Light": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+    "Streets": "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
+    "Satellite": "https://api.maptiler.com/maps/hybrid/style.json?key=GET_YOUR_API_KEY"  # butuh API key
+}
 
-    midpoint = (df["latitude"].mean(), df["longitude"].mean())
-    st.pydeck_chart(pdk.Deck(
-        map_style=map_styles[basemap],
-        initial_view_state=pdk.ViewState(
-            latitude=midpoint[0],
-            longitude=midpoint[1],
-            zoom=11,
-            pitch=0,
+midpoint = (df["latitude"].mean(), df["longitude"].mean())
+
+st.pydeck_chart(pdk.Deck(
+    map_style=map_styles[basemap],
+    initial_view_state=pdk.ViewState(
+        latitude=midpoint[0],
+        longitude=midpoint[1],
+        zoom=11,
+        pitch=0,
+    ),
+    layers=[
+        pdk.Layer(
+            "GeoJsonLayer",
+            aoi,
+            stroked=True,
+            filled=False,
+            get_line_color=[0, 150, 255],
+            line_width_min_pixels=3,
         ),
-        layers=[
-
-            pdk.Layer(
-                "GeoJsonLayer",
-                aoi,
-                stroked=True,
-                filled=False,
-                get_line_color=[0, 150, 255],
-                line_width_min_pixels=3,
-            ),
-
-            pdk.Layer(
-                "ScatterplotLayer",
-                data=df,
-                get_position="[longitude, latitude]",
-                get_color="[255, 100, 100, 200]",
-                get_radius=300,
-            ),
-        ],
-    ))
+        pdk.Layer(
+            "ScatterplotLayer",
+            data=df,
+            get_position="[longitude, latitude]",
+            get_color="[255, 100, 100, 200]",
+            get_radius=300,
+        ),
+    ],
+))
 
 with right:
     st.subheader("🔥 Fire Danger Rating")
