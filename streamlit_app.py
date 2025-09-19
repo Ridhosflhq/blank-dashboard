@@ -19,7 +19,8 @@ st.markdown(
         padding: 1rem 2rem;
         background-color: black;
     }
-    .stPlotlyChart, .stMetric, .stDataFrame {
+    /* Default container style for metrics, map, and table */
+    .stMetric, .stDataFrame {
         background-color: #44444E;
         padding: 15px;
         border-radius: 10px;
@@ -92,8 +93,8 @@ with left:
     fig_village.update_layout(
         margin=dict(l=10, r=10, t=30, b=120),
         height=500,
-        plot_bgcolor="#44444E",
-        paper_bgcolor="#44444E",
+        plot_bgcolor="black",  # remove container color
+        paper_bgcolor="black",
         font=dict(color="white"),
         xaxis=dict(tickangle=-30, automargin=True),
         legend=dict(
@@ -114,8 +115,8 @@ with left:
     fig_block.update_layout(
         margin=dict(l=10, r=10, t=30, b=80),
         height=450,
-        plot_bgcolor="#44444E",
-        paper_bgcolor="#44444E",
+        plot_bgcolor="black",  # remove container color
+        paper_bgcolor="black",
         font=dict(color="white"),
         xaxis=dict(tickangle=-30, automargin=True)
     )
