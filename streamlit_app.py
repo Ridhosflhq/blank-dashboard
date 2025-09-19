@@ -80,7 +80,7 @@ with col2:
 # -------------------
 # Layout: Left, Center, Right
 # -------------------
-left, center, right = st.columns([1, 2, 1.3])
+left, center, right = st.columns([0.9, 2.2, 1])
 
 # --- Left Column: Charts ---
 with left:
@@ -90,12 +90,12 @@ with left:
         template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Set2
     )
     fig_village.update_layout(
-        margin=dict(l=10, r=10, t=30, b=120),  # tambah margin bawah
-        height=500,  # tinggi chart lebih besar
+        margin=dict(l=10, r=10, t=30, b=120),
+        height=500,
         plot_bgcolor="#44444E",
         paper_bgcolor="#44444E",
         font=dict(color="white"),
-        xaxis=dict(tickangle=-30, automargin=True),  # rotasi label
+        xaxis=dict(tickangle=-30, automargin=True),
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -131,13 +131,11 @@ with center:
         index=0
     )
 
-    # Map styles
     map_styles = {
         "OpenStreetMap": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
         "Dark": "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
         "Light": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
         "Streets": "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
-        # ganti Satellite supaya tanpa API key
         "Satellite": "https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer"
     }
 
