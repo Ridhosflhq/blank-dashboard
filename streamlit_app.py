@@ -19,7 +19,6 @@ st.markdown(
         padding: 1rem 2rem;
         background-color: black;
     }
-    /* Default container style for metrics, map, and table */
     .stMetric, .stDataFrame {
         background-color: #44444E;
         padding: 15px;
@@ -41,13 +40,13 @@ with open("aoi.json", "r") as f:
     aoi = json.load(f)
 
 # -------------------
-# Date Filter
+# Date Filter (fleksibel)
 # -------------------
 st.sidebar.header("📅 Date Filter")
 min_date, max_date = df['date'].min(), df['date'].max()
 
-start_date = st.sidebar.date_input("Start Date", min_date.date())
-end_date = st.sidebar.date_input("End Date", max_date.date())
+start_date = st.sidebar.date_input("Start Date", min_value=min_date.date(), max_value=max_date.date(), value=min_date.date())
+end_date = st.sidebar.date_input("End Date", min_value=min_date.date(), max_value=max_date.date(), value=max_date.date())
 
 mask = (df['date'].dt.date >= start_date) & (df['date'].dt.date <= end_date)
 df = df.loc[mask]
@@ -61,7 +60,6 @@ month_count = df[(df['date'].dt.month == this_month) & (df['date'].dt.year == th
 village_count = df['village'].value_counts().reset_index()
 village_count.columns = ['Village', 'Fire Events']
 
-# 🔥 Perbaikan: pakai datetime untuk year_month
 df['year_month'] = df['date'].dt.to_period('M').dt.to_timestamp()
 block_month = df.groupby(['year_month', 'Blok']).size().reset_index(name='Fire Events')
 
@@ -114,7 +112,7 @@ with left:
     )
     fig_block.update_layout(
         margin=dict(l=10, r=10, t=30, b=80),
-        height=600,  # Panjangin chart biar sama dengan tabel
+        height=600,  # Sama panjang dengan tabel
         plot_bgcolor="black",
         paper_bgcolor="black",
         font=dict(color="white"),
@@ -147,7 +145,6 @@ with center:
     }
 
     style_url = map_styles[basemap]
-
     midpoint = (df["latitude"].mean(), df["longitude"].mean())
 
     st.pydeck_chart(pdk.Deck(
@@ -175,7 +172,7 @@ with center:
                 get_radius=300,
             ),
         ],
-    ))
+    ), height=400)  # 🔽 kecilkan tinggi peta
 
 # --- Right Column: Info ---
 with right:
