@@ -4,6 +4,34 @@ import plotly.express as px
 import pydeck as pdk
 import json
 
+# -------------------
+# Config
+# -------------------
+st.set_page_config(layout="wide")
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #37353E;
+        color: white;
+    }
+    .block-container {
+        padding: 1rem 2rem;
+        background-color: #37353E;
+    }
+    .stPlotlyChart, .stMetric, .stDataFrame {
+        background-color: #44444E;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# -------------------
+# Load Data
+# -------------------
 csv_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSgZRjQlxUsTPmrXiDCtwky4_A0FJrGDj_r7JLgsqi8gvjOWxmDKpBSdJDWFF38VfRuxUxzWSjhk46C/pub?output=csv"
 df = pd.read_csv(csv_url)
 df['date'] = pd.to_datetime(df['date'])
@@ -11,22 +39,17 @@ df['date'] = pd.to_datetime(df['date'])
 with open("aoi.json", "r") as f:
     aoi = json.load(f)
 
-st.set_page_config(layout="wide")
-st.title("🔥 Fire Hotspot Monitoring Dashboard")
+# -------------------
+# Filter Date
+# -------------------
+st.sidebar.header("📅 Date Filter")
+min_date, max_date = df['date'].min(), df['date'].max()
 
-min_date = df['date'].min().date()
-max_date = df['date'].max().date()
+start_date = st.sidebar.date_input("Start Date", min_date)
+end_date = st.sidebar.date_input("End Date", max_date)
 
-date_range = st.date_input(
-    "📅 Select Date Range:",
-    value=[min_date, max_date],
-    min_value=min_date,
-    max_value=max_date
-)
-
-if len(date_range) == 2:
-    start_date, end_date = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
-    df = df[(df['date'] >= start_date) & (df['date'] <= end_date)]
+mask = (df['date'].dt.date >= start_date) & (df['date'].dt.date <= end_date)
+df = df.loc[mask]
 
 today = pd.Timestamp.today().normalize()
 this_month, this_year = today.month, today.year
@@ -40,43 +63,48 @@ village_count.columns = ['Village', 'Fire Events']
 df['year_month'] = df['date'].dt.to_period('M').astype(str)
 block_month = df.groupby(['year_month', 'Blok']).size().reset_index(name='Fire Events')
 
+st.title("🔥 Fire Hotspot Monitoring Dashboard")
 
 col1, col2 = st.columns(2)
-col1.metric("🔥 Fires Today", today_count)
-col2.metric("🔥 Fires This Month", month_count)
+with col1:
+    st.metric("🔥 Fires Today", today_count)
+with col2:
+    st.metric("🔥 Fires This Month", month_count)
 
 left, center, right = st.columns([1, 2, 1.3])
 
 with left:
     st.subheader("🔥 Fires per Village")
-    fig_village = px.bar(village_count, x="Village", y="Fire Events", color="Village",
-                         color_discrete_sequence=px.colors.sequential.OrRd,
-                         template="plotly_dark")
+    fig_village = px.bar(
+        village_count, x="Village", y="Fire Events", color="Village",
+        template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Set2
+    )
     fig_village.update_layout(
         margin=dict(l=10, r=10, t=30, b=10),
-        plot_bgcolor="#111111",
-        paper_bgcolor="#111111"
+        plot_bgcolor="#44444E",
+        paper_bgcolor="#44444E",
+        font=dict(color="white")
     )
     st.plotly_chart(fig_village, use_container_width=True)
 
     st.subheader("🔥 Fires per Block per Month")
-    fig_block = px.bar(block_month, x="year_month", y="Fire Events", color="Blok", barmode="group",
-                       color_discrete_sequence=px.colors.qualitative.Set2,
-                       template="plotly_dark")
+    fig_block = px.bar(
+        block_month, x="year_month", y="Fire Events", color="Blok", barmode="group",
+        template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Vivid
+    )
     fig_block.update_layout(
         margin=dict(l=10, r=10, t=30, b=10),
-        plot_bgcolor="#111111",
-        paper_bgcolor="#111111"
+        plot_bgcolor="#44444E",
+        paper_bgcolor="#44444E",
+        font=dict(color="white")
     )
     st.plotly_chart(fig_block, use_container_width=True)
 
 with center:
     st.subheader("🗺️ Fire Hotspot Map")
-
     midpoint = (df["latitude"].mean(), df["longitude"].mean())
-
     st.pydeck_chart(pdk.Deck(
-        map_style="mapbox://styles/mapbox/dark-v10",
+        map_style="mapbox://styles/mapbox/dark-v9",
         initial_view_state=pdk.ViewState(
             latitude=midpoint[0],
             longitude=midpoint[1],
@@ -98,7 +126,7 @@ with center:
                 "ScatterplotLayer",
                 data=df,
                 get_position="[longitude, latitude]",
-                get_color="[255, 80, 0, 180]",
+                get_color="[255, 100, 100, 200]",
                 get_radius=300,
             ),
         ],
@@ -110,4 +138,4 @@ with right:
     st.info("Block 2: LOW")
 
 st.subheader("📋 Fire Events Table")
-st.dataframe(df[['date','owner','LC','village','latitude','longitude']], height=400)
+st.dataframe(df[['date','owner','LC','village','latitude','longitude']], height=350)
