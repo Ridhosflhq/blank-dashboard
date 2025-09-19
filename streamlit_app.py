@@ -11,21 +11,11 @@ st.set_page_config(layout="wide")
 st.markdown(
     """
     <style>
-    /* Background kembali default */
-    body {
-        background-color: #ffffff;
-        color: black;
-    }
-    .block-container {
-        padding: 1rem 2rem;
-        background-color: #ffffff;
-    }
-    /* Styling container chart/table */
+    /* Hapus background override -> kembali default */
     .stPlotlyChart, .stMetric, .stDataFrame {
         background-color: #44444E;
         padding: 15px;
         border-radius: 10px;
-        border: 2px solid #666666;
     }
     </style>
     """,
@@ -83,7 +73,7 @@ with left:
         template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Set2
     )
     fig_village.update_layout(
-        margin=dict(l=10, r=10, t=30, b=10),
+        margin=dict(l=10, r=10, t=30, b=50),  # lebih besar bawah buat legend
         plot_bgcolor="#44444E",
         paper_bgcolor="#44444E",
         font=dict(color="white"),
@@ -92,10 +82,7 @@ with left:
             yanchor="bottom",
             y=-0.4,
             xanchor="center",
-            x=0.5,
-            bgcolor="rgba(0,0,0,0.5)",
-            bordercolor="white",
-            borderwidth=1
+            x=0.5
         )
     )
     st.plotly_chart(fig_village, use_container_width=True)
@@ -106,7 +93,7 @@ with left:
         template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Vivid
     )
     fig_block.update_layout(
-        margin=dict(l=10, r=10, t=30, b=10),
+        margin=dict(l=10, r=10, t=30, b=50),
         plot_bgcolor="#44444E",
         paper_bgcolor="#44444E",
         font=dict(color="white"),
@@ -115,19 +102,31 @@ with left:
             yanchor="bottom",
             y=-0.4,
             xanchor="center",
-            x=0.5,
-            bgcolor="rgba(0,0,0,0.5)",
-            bordercolor="white",
-            borderwidth=1
+            x=0.5
         )
     )
     st.plotly_chart(fig_block, use_container_width=True)
 
 with center:
     st.subheader("🗺️ Fire Hotspot Map")
+
+    # Tambah pilihan basemap
+    basemap = st.selectbox(
+        "Choose Basemap",
+        ["Dark", "Light", "Satellite", "Streets"],
+        index=0
+    )
+
+    map_styles = {
+        "Dark": "mapbox://styles/mapbox/dark-v9",
+        "Light": "mapbox://styles/mapbox/light-v9",
+        "Satellite": "mapbox://styles/mapbox/satellite-v9",
+        "Streets": "mapbox://styles/mapbox/streets-v11"
+    }
+
     midpoint = (df["latitude"].mean(), df["longitude"].mean())
     st.pydeck_chart(pdk.Deck(
-        map_style="mapbox://styles/mapbox/light-v11",  # 🔹 ganti basemap lebih terang
+        map_style=map_styles[basemap],
         initial_view_state=pdk.ViewState(
             latitude=midpoint[0],
             longitude=midpoint[1],
