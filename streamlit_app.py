@@ -98,13 +98,7 @@ with left:
         paper_bgcolor="black",
         font=dict(color="white"),
         xaxis=dict(tickangle=-30, automargin=True),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.4,
-            xanchor="center",
-            x=0.5
-        )
+        showlegend=False  # ❌ Hilangkan legenda
     )
     st.plotly_chart(fig_village, use_container_width=True)
 
@@ -120,7 +114,7 @@ with left:
     )
     fig_block.update_layout(
         margin=dict(l=10, r=10, t=30, b=80),
-        height=450,
+        height=600,  # Panjangin chart biar sama dengan tabel
         plot_bgcolor="black",
         paper_bgcolor="black",
         font=dict(color="white"),
@@ -129,7 +123,7 @@ with left:
             automargin=True,
             type="date",
             range=[block_month['year_month'].min(), block_month['year_month'].max()],
-            rangeslider=dict(visible=True)  # Tambah slider interaktif
+            rangeslider=dict(visible=True)
         )
     )
     st.plotly_chart(fig_block, use_container_width=True)
@@ -193,4 +187,4 @@ with right:
 # Table Section
 # -------------------
 st.subheader("📋 Fire Events Table")
-st.dataframe(df[['date','owner','LC','village','latitude','longitude']], height=350)
+st.dataframe(df[['date','owner','LC','village','latitude','longitude']], height=600)
