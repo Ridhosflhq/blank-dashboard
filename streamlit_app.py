@@ -11,7 +11,14 @@ st.set_page_config(layout="wide")
 st.markdown(
     """
     <style>
-    /* Hapus background override -> kembali default */
+    body {
+        background-color: black;
+        color: white;
+    }
+    .block-container {
+        padding: 1rem 2rem;
+        background-color: black;
+    }
     .stPlotlyChart, .stMetric, .stDataFrame {
         background-color: #44444E;
         padding: 15px;
@@ -33,7 +40,7 @@ with open("aoi.json", "r") as f:
     aoi = json.load(f)
 
 # -------------------
-# Filter Date
+# Date Filter
 # -------------------
 st.sidebar.header("📅 Date Filter")
 min_date, max_date = df['date'].min(), df['date'].max()
@@ -56,40 +63,47 @@ village_count.columns = ['Village', 'Fire Events']
 df['year_month'] = df['date'].dt.to_period('M').astype(str)
 block_month = df.groupby(['year_month', 'Blok']).size().reset_index(name='Fire Events')
 
+# -------------------
+# Dashboard Title
+# -------------------
 st.title("🔥 Fire Hotspot Monitoring Dashboard")
 
+# -------------------
+# Metrics
+# -------------------
 col1, col2 = st.columns(2)
 with col1:
     st.metric("🔥 Fires Today", today_count)
 with col2:
     st.metric("🔥 Fires This Month", month_count)
 
+# -------------------
+# Layout: Left, Center, Right
+# -------------------
 left, center, right = st.columns([1, 2, 1.3])
 
+# --- Left Column: Charts ---
 with left:
-   st.subheader("🔥 Fires per Village")
-fig_village = px.bar(
-    village_count, x="Village", y="Fire Events", color="Village",
-    template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Set2
-)
-fig_village.update_layout(
-    margin=dict(l=10, r=10, t=30, b=50),
-    plot_bgcolor="#44444E",
-    paper_bgcolor="#44444E",
-    font=dict(color="white"),
-    xaxis=dict(
-        tickangle=0,          # biar horizontal
-        automargin=True,      # kasih margin otomatis
-    ),
-    legend=dict(
-        orientation="h",
-        yanchor="bottom",
-        y=-0.4,
-        xanchor="center",
-        x=0.5
+    st.subheader("🔥 Fires per Village")
+    fig_village = px.bar(
+        village_count, x="Village", y="Fire Events", color="Village",
+        template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Set2
     )
-)
-st.plotly_chart(fig_village, use_container_width=True)
+    fig_village.update_layout(
+        margin=dict(l=10, r=10, t=30, b=50),
+        plot_bgcolor="#44444E",
+        paper_bgcolor="#44444E",
+        font=dict(color="white"),
+        xaxis=dict(tickangle=0, automargin=True),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.4,
+            xanchor="center",
+            x=0.5
+        )
+    )
+    st.plotly_chart(fig_village, use_container_width=True)
 
     st.subheader("🔥 Fires per Block per Month")
     fig_block = px.bar(
@@ -101,67 +115,72 @@ st.plotly_chart(fig_village, use_container_width=True)
         plot_bgcolor="#44444E",
         paper_bgcolor="#44444E",
         font=dict(color="white"),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.4,
-            xanchor="center",
-            x=0.5
-        )
+        xaxis=dict(tickangle=0, automargin=True)
     )
     st.plotly_chart(fig_block, use_container_width=True)
 
+# --- Center Column: Map ---
 with center:
     st.subheader("🗺️ Fire Hotspot Map")
 
-basemap = st.selectbox(
-    "Choose Basemap",
-    ["OpenStreetMap", "Satellite", "Dark", "Light", "Streets"],
-    index=0
-)
+    basemap = st.selectbox(
+        "Choose Basemap",
+        ["OpenStreetMap", "Dark", "Light", "Streets", "Satellite"],
+        index=0
+    )
 
-# pakai MapTiler/Carto/OSM style URL
-map_styles = {
-    "OpenStreetMap": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-    "Dark": "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-    "Light": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-    "Streets": "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
-    "Satellite": "https://api.maptiler.com/maps/hybrid/style.json?key=GET_YOUR_API_KEY"  # butuh API key
-}
+    # Map styles (free + optional Satellite with API key)
+    map_styles = {
+        "OpenStreetMap": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+        "Dark": "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+        "Light": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+        "Streets": "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
+        "Satellite": "https://api.maptiler.com/maps/hybrid/style.json?key=YOUR_API_KEY"
+    }
 
-midpoint = (df["latitude"].mean(), df["longitude"].mean())
+    # Fallback if user chooses Satellite without API key
+    style_url = map_styles[basemap]
+    if "YOUR_API_KEY" in style_url:
+        st.warning("⚠️ No API key provided. Falling back to OpenStreetMap.")
+        style_url = map_styles["OpenStreetMap"]
 
-st.pydeck_chart(pdk.Deck(
-    map_style=map_styles[basemap],
-    initial_view_state=pdk.ViewState(
-        latitude=midpoint[0],
-        longitude=midpoint[1],
-        zoom=11,
-        pitch=0,
-    ),
-    layers=[
-        pdk.Layer(
-            "GeoJsonLayer",
-            aoi,
-            stroked=True,
-            filled=False,
-            get_line_color=[0, 150, 255],
-            line_width_min_pixels=3,
+    midpoint = (df["latitude"].mean(), df["longitude"].mean())
+
+    st.pydeck_chart(pdk.Deck(
+        map_style=style_url,
+        initial_view_state=pdk.ViewState(
+            latitude=midpoint[0],
+            longitude=midpoint[1],
+            zoom=11,
+            pitch=0,
         ),
-        pdk.Layer(
-            "ScatterplotLayer",
-            data=df,
-            get_position="[longitude, latitude]",
-            get_color="[255, 100, 100, 200]",
-            get_radius=300,
-        ),
-    ],
-))
+        layers=[
+            pdk.Layer(
+                "GeoJsonLayer",
+                aoi,
+                stroked=True,
+                filled=False,
+                get_line_color=[0, 150, 255],
+                line_width_min_pixels=3,
+            ),
+            pdk.Layer(
+                "ScatterplotLayer",
+                data=df,
+                get_position="[longitude, latitude]",
+                get_color="[255, 100, 100, 200]",
+                get_radius=300,
+            ),
+        ],
+    ))
 
+# --- Right Column: Info ---
 with right:
     st.subheader("🔥 Fire Danger Rating")
     st.info("Block 1: LOW")
     st.info("Block 2: LOW")
 
+# -------------------
+# Table Section
+# -------------------
 st.subheader("📋 Fire Events Table")
 st.dataframe(df[['date','owner','LC','village','latitude','longitude']], height=350)
