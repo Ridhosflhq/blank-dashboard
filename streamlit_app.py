@@ -90,11 +90,12 @@ with left:
         template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Set2
     )
     fig_village.update_layout(
-        margin=dict(l=10, r=10, t=30, b=50),
+        margin=dict(l=10, r=10, t=30, b=120),  # tambah margin bawah
+        height=500,  # tinggi chart lebih besar
         plot_bgcolor="#44444E",
         paper_bgcolor="#44444E",
         font=dict(color="white"),
-        xaxis=dict(tickangle=0, automargin=True),
+        xaxis=dict(tickangle=-30, automargin=True),  # rotasi label
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -111,11 +112,12 @@ with left:
         template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Vivid
     )
     fig_block.update_layout(
-        margin=dict(l=10, r=10, t=30, b=50),
+        margin=dict(l=10, r=10, t=30, b=80),
+        height=450,
         plot_bgcolor="#44444E",
         paper_bgcolor="#44444E",
         font=dict(color="white"),
-        xaxis=dict(tickangle=0, automargin=True)
+        xaxis=dict(tickangle=-30, automargin=True)
     )
     st.plotly_chart(fig_block, use_container_width=True)
 
@@ -129,25 +131,22 @@ with center:
         index=0
     )
 
-    # Map styles (free + optional Satellite with API key)
+    # Map styles
     map_styles = {
         "OpenStreetMap": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
         "Dark": "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
         "Light": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
         "Streets": "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
-        "Satellite": "https://api.maptiler.com/maps/hybrid/style.json?key=YOUR_API_KEY"
+        # ganti Satellite supaya tanpa API key
+        "Satellite": "https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer"
     }
 
-    # Fallback if user chooses Satellite without API key
     style_url = map_styles[basemap]
-    if "YOUR_API_KEY" in style_url:
-        st.warning("⚠️ No API key provided. Falling back to OpenStreetMap.")
-        style_url = map_styles["OpenStreetMap"]
 
     midpoint = (df["latitude"].mean(), df["longitude"].mean())
 
     st.pydeck_chart(pdk.Deck(
-        map_style=style_url,
+        map_style=style_url if basemap != "Satellite" else None,
         initial_view_state=pdk.ViewState(
             latitude=midpoint[0],
             longitude=midpoint[1],
