@@ -44,10 +44,10 @@ with open("aoi.json", "r") as f:
 # Date Filter
 # -------------------
 st.sidebar.header("📅 Date Filter")
-min_date, max_date = df['date'].min().date(), df['date'].max().date()
+min_date, max_date = df['date'].min(), df['date'].max()
 
-start_date = st.sidebar.date_input("Start Date", min_value=min_date, max_value=max_date, value=min_date)
-end_date = st.sidebar.date_input("End Date", min_value=min_date, max_value=max_date, value=max_date)
+start_date = st.sidebar.date_input("Start Date", min_date.date())
+end_date = st.sidebar.date_input("End Date", max_date.date())
 
 mask = (df['date'].dt.date >= start_date) & (df['date'].dt.date <= end_date)
 df = df.loc[mask]
@@ -61,7 +61,8 @@ month_count = df[(df['date'].dt.month == this_month) & (df['date'].dt.year == th
 village_count = df['village'].value_counts().reset_index()
 village_count.columns = ['Village', 'Fire Events']
 
-df['year_month'] = df['date'].dt.to_period('M').astype(str)
+# 🔥 Perbaikan: pakai datetime untuk year_month
+df['year_month'] = df['date'].dt.to_period('M').dt.to_timestamp()
 block_month = df.groupby(['year_month', 'Blok']).size().reset_index(name='Fire Events')
 
 # -------------------
@@ -109,8 +110,13 @@ with left:
 
     st.subheader("🔥 Fires per Block per Month")
     fig_block = px.bar(
-        block_month, x="year_month", y="Fire Events", color="Blok", barmode="group",
-        template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Vivid
+        block_month, 
+        x="year_month", 
+        y="Fire Events", 
+        color="Blok", 
+        barmode="group",
+        template="plotly_dark", 
+        color_discrete_sequence=px.colors.qualitative.Vivid
     )
     fig_block.update_layout(
         margin=dict(l=10, r=10, t=30, b=80),
@@ -121,10 +127,11 @@ with left:
         xaxis=dict(
             tickangle=-30,
             automargin=True,
-            fixedrange=False
+            type="date",
+            range=[block_month['year_month'].min(), block_month['year_month'].max()],
+            rangeslider=dict(visible=True)  # Tambah slider interaktif
         )
     )
-    fig_block.update_xaxes(rangeslider_visible=True)  # supaya bisa geser sampai ujung kanan
     st.plotly_chart(fig_block, use_container_width=True)
 
 # --- Center Column: Map ---
