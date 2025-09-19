@@ -19,6 +19,7 @@ st.markdown(
         padding: 1rem 2rem;
         background-color: black;
     }
+    /* Default container style for metrics, map, and table */
     .stMetric, .stDataFrame {
         background-color: #44444E;
         padding: 15px;
@@ -40,13 +41,13 @@ with open("aoi.json", "r") as f:
     aoi = json.load(f)
 
 # -------------------
-# Date Filter (fleksibel)
+# Date Filter (fleksibel, ikut data terbaru)
 # -------------------
 st.sidebar.header("📅 Date Filter")
-min_date, max_date = df['date'].min(), df['date'].max()
+min_date, max_date = df['date'].min().date(), df['date'].max().date()
 
-start_date = st.sidebar.date_input("Start Date", min_value=min_date.date(), max_value=max_date.date(), value=min_date.date())
-end_date = st.sidebar.date_input("End Date", min_value=min_date.date(), max_value=max_date.date(), value=max_date.date())
+start_date = st.sidebar.date_input("Start Date", min_date, min_value=min_date, max_value=max_date)
+end_date = st.sidebar.date_input("End Date", max_date, min_value=min_date, max_value=max_date)
 
 mask = (df['date'].dt.date >= start_date) & (df['date'].dt.date <= end_date)
 df = df.loc[mask]
@@ -57,6 +58,9 @@ this_month, this_year = today.month, today.year
 today_count = df[df['date'].dt.date == today.date()].shape[0]
 month_count = df[(df['date'].dt.month == this_month) & (df['date'].dt.year == this_year)].shape[0]
 
+# -------------------
+# Aggregasi Data
+# -------------------
 village_count = df['village'].value_counts().reset_index()
 village_count.columns = ['Village', 'Fire Events']
 
@@ -80,7 +84,7 @@ with col2:
 # -------------------
 # Layout: Left, Center, Right
 # -------------------
-left, center, right = st.columns([0.9, 2.2, 1])
+left, center, right = st.columns([1.2, 2, 1])
 
 # --- Left Column: Charts ---
 with left:
@@ -102,17 +106,18 @@ with left:
 
     st.subheader("🔥 Fires per Block per Month")
     fig_block = px.bar(
-        block_month, 
-        x="year_month", 
-        y="Fire Events", 
-        color="Blok", 
+        block_month,
+        x="year_month",
+        y="Fire Events",
+        color="Blok",
         barmode="group",
-        template="plotly_dark", 
+        template="plotly_dark",
         color_discrete_sequence=px.colors.qualitative.Vivid
     )
     fig_block.update_layout(
-        margin=dict(l=10, r=10, t=30, b=80),
-        height=600,  # Sama panjang dengan tabel
+        autosize=True,
+        margin=dict(l=0, r=0, t=30, b=80),  # hilangkan padding kiri-kanan
+        height=600,  # sama tinggi dengan tabel
         plot_bgcolor="black",
         paper_bgcolor="black",
         font=dict(color="white"),
@@ -145,6 +150,7 @@ with center:
     }
 
     style_url = map_styles[basemap]
+
     midpoint = (df["latitude"].mean(), df["longitude"].mean())
 
     st.pydeck_chart(pdk.Deck(
@@ -172,7 +178,7 @@ with center:
                 get_radius=300,
             ),
         ],
-    ), height=400)  # 🔽 kecilkan tinggi peta
+    ), height=400)  # 🔽 map lebih pendek
 
 # --- Right Column: Info ---
 with right:
