@@ -4,9 +4,6 @@ import plotly.express as px
 import pydeck as pdk
 import json
 
-# -------------------
-# Config
-# -------------------
 st.set_page_config(layout="wide")
 st.markdown(
     """
@@ -30,9 +27,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# -------------------
-# Load Data
-# -------------------
 csv_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSgZRjQlxUsTPmrXiDCtwky4_A0FJrGDj_r7JLgsqi8gvjOWxmDKpBSdJDWFF38VfRuxUxzWSjhk46C/pub?output=csv"
 df = pd.read_csv(csv_url)
 df['date'] = pd.to_datetime(df['date'])
@@ -40,10 +34,7 @@ df['date'] = pd.to_datetime(df['date'])
 with open("aoi.json", "r") as f:
     aoi = json.load(f)
 
-# -------------------
-# Date Filter (fleksibel, ikut data terbaru)
-# -------------------
-st.sidebar.header("📅 Date Filter")
+st.sidebar.header("Date Filter")
 min_date, max_date = df['date'].min().date(), df['date'].max().date()
 
 start_date = st.sidebar.date_input("Start Date", min_date, min_value=min_date, max_value=max_date)
@@ -58,37 +49,26 @@ this_month, this_year = today.month, today.year
 today_count = df[df['date'].dt.date == today.date()].shape[0]
 month_count = df[(df['date'].dt.month == this_month) & (df['date'].dt.year == this_year)].shape[0]
 
-# -------------------
-# Aggregasi Data
-# -------------------
 village_count = df['village'].value_counts().reset_index()
 village_count.columns = ['Village', 'Fire Events']
 
 df['year_month'] = df['date'].dt.to_period('M').dt.to_timestamp()
 block_month = df.groupby(['year_month', 'Blok']).size().reset_index(name='Fire Events')
 
-# -------------------
-# Dashboard Title
-# -------------------
-st.title("🔥 Fire Hotspot Monitoring Dashboard")
 
-# -------------------
-# Metrics
-# -------------------
+st.title("Fire Hotspot Monitoring Dashboard")
+
+
 col1, col2 = st.columns(2)
 with col1:
-    st.metric("🔥 Fires Today", today_count)
+    st.metric("Fires Today", today_count)
 with col2:
-    st.metric("🔥 Fires This Month", month_count)
+    st.metric("Fires This Month", month_count)
 
-# -------------------
-# Layout: Left, Center, Right
-# -------------------
 left, center, right = st.columns([1.2, 2, 1])
 
-# --- Left Column: Charts ---
 with left:
-    st.subheader("🔥 Fires per Village")
+    st.subheader("Fires per Village")
     fig_village = px.bar(
         village_count, x="Village", y="Fire Events", color="Village",
         template="plotly_dark", color_discrete_sequence=px.colors.qualitative.Set2
@@ -100,11 +80,11 @@ with left:
         paper_bgcolor="black",
         font=dict(color="white"),
         xaxis=dict(tickangle=-30, automargin=True),
-        showlegend=False  # ❌ Hilangkan legenda
+        showlegend=False
     )
     st.plotly_chart(fig_village, use_container_width=True)
 
-    st.subheader("🔥 Fires per Block per Month")
+    st.subheader("Fires per Block per Month")
     fig_block = px.bar(
         block_month,
         x="year_month",
@@ -116,8 +96,8 @@ with left:
     )
     fig_block.update_layout(
         autosize=True,
-        margin=dict(l=0, r=0, t=30, b=80),  # hilangkan padding kiri-kanan
-        height=600,  # sama tinggi dengan tabel
+        margin=dict(l=0, r=0, t=30, b=80),
+        height=600,
         plot_bgcolor="black",
         paper_bgcolor="black",
         font=dict(color="white"),
@@ -131,7 +111,6 @@ with left:
     )
     st.plotly_chart(fig_block, use_container_width=True)
 
-# --- Center Column: Map ---
 with center:
     st.subheader("🗺️ Fire Hotspot Map")
 
@@ -178,16 +157,13 @@ with center:
                 get_radius=300,
             ),
         ],
-    ), height=400)  # 🔽 map lebih pendek
+    ), height=400) 
 
-# --- Right Column: Info ---
+
 with right:
-    st.subheader("🔥 Fire Danger Rating")
+    st.subheader("Fire Danger Rating")
     st.info("Block 1: LOW")
     st.info("Block 2: LOW")
 
-# -------------------
-# Table Section
-# -------------------
-st.subheader("📋 Fire Events Table")
+st.subheader("Fire Events Table")
 st.dataframe(df[['date','owner','LC','village','latitude','longitude']], height=600)
