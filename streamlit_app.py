@@ -73,7 +73,7 @@ with left_col:
         min_lon, max_lon = min(lons), max(lons)
 
         m = folium.Map(tiles=basemap_options[selected_basemap])
-        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(50, 50))
+        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(30, 30))
 
         folium.GeoJson(
             boundary,
@@ -110,7 +110,7 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
-    map_height = 750
+    map_height = 900
     st_folium(m, width="100%", height=map_height)
 
 with right_col:
