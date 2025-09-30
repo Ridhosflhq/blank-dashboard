@@ -75,7 +75,7 @@ with left_col:
         min_lon, max_lon = min(lons), max(lons)
 
         m = folium.Map(tiles=basemap_options[selected_basemap])
-
+ 
         m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(50, 50))
 
         folium.GeoJson(
@@ -113,7 +113,7 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
-    map_height = 700
+    map_height = 900
     st_folium(m, width="100%", height=map_height)
 
 with right_col:
@@ -134,16 +134,19 @@ with right_col:
 
         df_monthly = (
             filtered_df.groupby([
-                filtered_df["Tanggal"].dt.to_period("M").dt.strftime("%m/%y"),
+                filtered_df["Tanggal"].dt.to_period("M"),
                 "Blok"
             ])
             .size()
             .reset_index(name="Jumlah")
-            .sort_values("Tanggal") 
+            .sort_values("Tanggal")
         )
+
+        df_monthly["Label"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
+
         fig_blok = px.bar(
             df_monthly,
-            x="Tanggal", y="Jumlah", color="Blok",
+            x="Label", y="Jumlah", color="Blok",
             title="Hotspot per Blok per Bulan",
             height=400
         )
