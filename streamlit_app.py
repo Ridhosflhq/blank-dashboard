@@ -64,7 +64,7 @@ with left_col:
         with open("aoi.json", "r") as f:
             boundary = json.load(f)
 
-        # ambil semua koordinat AOI
+        # Ambil semua koordinat AOI
         bounds_coords = []
         for feature in boundary["features"]:
             coords = feature["geometry"]["coordinates"]
@@ -79,12 +79,12 @@ with left_col:
         min_lat, max_lat = min(lats), max(lats)
         min_lon, max_lon = min(lons), max(lons)
 
-        # buat map
+        # Buat map
         m = folium.Map(tiles=basemap_options[selected_basemap])
         # Tambahkan padding biar tidak ngepres
         m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(50, 50))
 
-        # tambahkan AOI boundary
+        # Tambahkan AOI boundary
         folium.GeoJson(
             boundary,
             name="Boundary",
@@ -101,7 +101,7 @@ with left_col:
                        zoom_start=10,
                        tiles=basemap_options[selected_basemap])
 
-    # titik hotspot
+    # Titik hotspot
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
@@ -121,7 +121,8 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
-    map_height = 700
+    # Tinggikan peta (dari 700 ke 900)
+    map_height = 900
     st_folium(m, width="100%", height=map_height)
 
 with right_col:
@@ -143,16 +144,19 @@ with right_col:
         # Hotspot per Bulan per Blok
         df_monthly = (
             filtered_df.groupby([
-                filtered_df["Tanggal"].dt.to_period("M").dt.strftime("%m/%y"),
+                filtered_df["Tanggal"].dt.to_period("M"),
                 "Blok"
             ])
             .size()
             .reset_index(name="Jumlah")
-            .sort_values("Tanggal")  # pastikan urut waktu
+            .sort_values("Tanggal")  # sort by real period (tahun → bulan)
         )
+        # Tambahkan kolom label untuk axis (MM/YY)
+        df_monthly["Label"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
+
         fig_blok = px.bar(
             df_monthly,
-            x="Tanggal", y="Jumlah", color="Blok",
+            x="Label", y="Jumlah", color="Blok",
             title="Hotspot per Blok per Bulan",
             height=400
         )
