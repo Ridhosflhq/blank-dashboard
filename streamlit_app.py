@@ -3,7 +3,6 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 import json
-from datetime import date
 
 st.set_page_config(page_title="Fire Hotspot Dashboard", layout="wide")
 
@@ -20,7 +19,7 @@ st.sidebar.header("Filter Options")
 min_date, max_date = df["Tanggal"].min().date(), df["Tanggal"].max().date()
 date_range = st.sidebar.date_input(
     "Pilih Rentang Tanggal",
-    value=(date.today(), date.today()),
+    value=(min_date, max_date),
     min_value=min_date,
     max_value=max_date
 )
@@ -45,7 +44,7 @@ selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.ke
 
 m = folium.Map(location=[-0.5, 110.5], zoom_start=7, tiles=basemap_options[selected_basemap])
 
-with open("aoi.json", "r") as f:
+with open("CMI.json", "r") as f:
     boundary = json.load(f)
 
 folium.GeoJson(
@@ -54,7 +53,7 @@ folium.GeoJson(
     style_function=lambda x: {
         "color": "blue",
         "weight": 2,
-        "fill": False
+        "fillOpacity": 0,
     }
 ).add_to(m)
 
