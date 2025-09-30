@@ -3,6 +3,7 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 import json
+from datetime import date, timedelta
 
 st.set_page_config(page_title="Fire Hotspot Dashboard", layout="wide")
 
@@ -17,19 +18,28 @@ df = df[df["Ket"] == "Titik Api"]
 st.sidebar.header("Filter Options")
 
 min_date, max_date = df["Tanggal"].min().date(), df["Tanggal"].max().date()
-date_range = st.sidebar.date_input(
-    "Pilih Rentang Tanggal",
-    value=(min_date, max_date),
-    min_value=min_date,
-    max_value=max_date
+
+preset = st.sidebar.selectbox(
+    "Pilih Rentang Waktu Cepat",
+    ["Custom", "7 Hari Terakhir", "1 Bulan Terakhir", "6 Bulan Terakhir", "1 Tahun Terakhir", "Semua Data"]
 )
 
-if isinstance(date_range, tuple) and len(date_range) == 2:
-    start_date, end_date = date_range
-    mask = (df["Tanggal"].dt.date >= start_date) & (df["Tanggal"].dt.date <= end_date)
-    filtered_df = df[mask]
+if preset == "7 Hari Terakhir":
+    start_date, end_date = max_date - timedelta(days=7), max_date
+elif preset == "1 Bulan Terakhir":
+    start_date, end_date = max_date - timedelta(days=30), max_date
+elif preset == "6 Bulan Terakhir":
+    start_date, end_date = max_date - timedelta(days=182), max_date
+elif preset == "1 Tahun Terakhir":
+    start_date, end_date = max_date - timedelta(days=365), max_date
+elif preset == "Semua Data":
+    start_date, end_date = min_date, max_date
 else:
-    filtered_df = df[df["Tanggal"].dt.date == date_range]
+    start_date = st.sidebar.date_input("Tanggal Awal", value=min_date, min_value=min_date, max_value=max_date)
+    end_date = st.sidebar.date_input("Tanggal Akhir", value=max_date, min_value=min_date, max_value=max_date)
+
+mask = (df["Tanggal"].dt.date >= start_date) & (df["Tanggal"].dt.date <= end_date)
+filtered_df = df[mask]
 
 st.sidebar.write(f"Total Hotspot: {len(filtered_df)}")
 
@@ -42,12 +52,12 @@ basemap_options = {
 }
 selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.keys()))
 
-m = folium.Map(location=[-0.5, 110.5], zoom_start=7, tiles=basemap_options[selected_basemap])
+m = folium.Map(location=[0, 110], zoom_start=5, tiles=basemap_options[selected_basemap])
 
 with open("aoi.json", "r") as f:
     boundary = json.load(f)
 
-folium.GeoJson(
+geojson_obj = folium.GeoJson(
     boundary,
     name="Boundary",
     style_function=lambda x: {
@@ -57,6 +67,8 @@ folium.GeoJson(
     }
 ).add_to(m)
 
+m.fit_bounds(geojson_obj.get_bounds())
+
 for _, row in filtered_df.iterrows():
     folium.CircleMarker(
         location=[row["latitude"], row["longitude"]],
@@ -64,6 +76,7 @@ for _, row in filtered_df.iterrows():
         color="red",
         fill=True,
         fill_color="red",
+        fill_opacity=1,
         popup=(
             f"<b>Owner:</b> {row['Owner']}<br>"
             f"<b>Desa:</b> {row['Desa']}<br>"
