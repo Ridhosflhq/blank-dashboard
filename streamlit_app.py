@@ -3,6 +3,7 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 import json
+from datetime import timedelta
 import altair as alt
 
 st.set_page_config(page_title="Fire Hotspot Dashboard", layout="wide")
@@ -17,56 +18,70 @@ st.sidebar.header("Filter Options")
 
 min_date, max_date = df["Tanggal"].min().date(), df["Tanggal"].max().date()
 
-start_date = st.sidebar.date_input("Tanggal Awal", min_date, min_value=min_date, max_value=max_date)
-end_date = st.sidebar.date_input("Tanggal Akhir", max_date, min_value=min_date, max_value=max_date)
-
-quick_range = st.sidebar.selectbox(
-    "Pilih Rentang Cepat",
-    ["-- Tidak Ada --", "7 Hari Terakhir", "30 Hari Terakhir", "6 Bulan Terakhir"]
+preset = st.sidebar.selectbox(
+    "Pilih Rentang Waktu Cepat",
+    ["Custom", "7 Hari Terakhir", "1 Bulan Terakhir", "6 Bulan Terakhir", "1 Tahun Terakhir", "Semua Data"]
 )
 
-if quick_range == "7 Hari Terakhir":
-    start_date = max_date - pd.Timedelta(days=7)
-elif quick_range == "30 Hari Terakhir":
-    start_date = max_date - pd.Timedelta(days=30)
-elif quick_range == "6 Bulan Terakhir":
-    start_date = max_date - pd.Timedelta(days=180)
+if preset == "7 Hari Terakhir":
+    start_date, end_date = max_date - timedelta(days=7), max_date
+elif preset == "1 Bulan Terakhir":
+    start_date, end_date = max_date - timedelta(days=30), max_date
+elif preset == "6 Bulan Terakhir":
+    start_date, end_date = max_date - timedelta(days=182), max_date
+elif preset == "1 Tahun Terakhir":
+    start_date, end_date = max_date - timedelta(days=365), max_date
+elif preset == "Semua Data":
+    start_date, end_date = min_date, max_date
+else:
+    start_date = st.sidebar.date_input("Tanggal Awal", value=min_date, min_value=min_date, max_value=max_date)
+    end_date = st.sidebar.date_input("Tanggal Akhir", value=max_date, min_value=min_date, max_value=max_date)
 
 mask = (df["Tanggal"].dt.date >= start_date) & (df["Tanggal"].dt.date <= end_date)
 filtered_df = df[mask]
 
+desa_options = ["Semua"] + sorted(filtered_df["Desa"].dropna().unique().tolist())
+selected_desa = st.sidebar.selectbox("Pilih Desa", desa_options)
+if selected_desa != "Semua":
+    filtered_df = filtered_df[filtered_df["Desa"] == selected_desa]
+
+blok_options = ["Semua"] + sorted(filtered_df["Blok"].dropna().unique().tolist())
+selected_blok = st.sidebar.selectbox("Pilih Blok", blok_options)
+if selected_blok != "Semua":
+    filtered_df = filtered_df[filtered_df["Blok"] == selected_blok]
+
 st.sidebar.write(f"Total Hotspot: {len(filtered_df)}")
 
-col1, col2 = st.columns([2, 1], gap="small")
+basemap_options = {
+    "OpenStreetMap": "OpenStreetMap",
+    "CartoDB Positron": "CartoDB.Positron",
+    "CartoDB Dark": "CartoDB.DarkMatter",
+    "Esri World Imagery": "Esri.WorldImagery",
+    "Stamen Terrain": "Stamen.Terrain",
+}
+selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.keys()))
+
+col1, col2 = st.columns([3, 1])
 
 with col1:
+
+    m = folium.Map(location=[0, 110], zoom_start=5, tiles=basemap_options[selected_basemap])
+
+
     with open("aoi.json", "r") as f:
         boundary = json.load(f)
 
-    coords = []
-    def extract_coords(geom):
-        if geom["type"] == "Polygon":
-            coords.extend(geom["coordinates"][0])
-        elif geom["type"] == "MultiPolygon":
-            for poly in geom["coordinates"]:
-                coords.extend(poly[0])
-
-    for feat in boundary["features"]:
-        extract_coords(feat["geometry"])
-
-    if coords:
-        lats, lons = zip(*coords)
-        center_lat, center_lon = sum(lats) / len(lats), sum(lons) / len(lons)
-    else:
-        center_lat, center_lon = -0.5, 110.5
-
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=15, tiles="CartoDB.Positron")
-
-    folium.GeoJson(
+    geojson_obj = folium.GeoJson(
         boundary,
         name="Boundary",
-        style_function=lambda x: {"color": "blue", "weight": 2, "fillOpacity": 0}
+        style_function=lambda x: {
+            "color": "blue",
+            "weight": 2,
+            "fillOpacity": 0,
+        }
     ).add_to(m)
+
+    m.fit_bounds(geojson_obj.get_bounds())
 
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
@@ -76,42 +91,38 @@ with col1:
             fill=True,
             fill_color="red",
             fill_opacity=1,
-            popup=(
-                f"<b>Owner:</b> {row['Owner']}<br>"
-                f"<b>Desa:</b> {row['Desa']}<br>"
-                f"<b>Tanggal:</b> {row['Tanggal'].date()} {row['Jam']}<br>"
-                f"<b>Penutup Lahan:</b> {row['Penutup Lahan']}<br>"
-                f"<b>Blok:</b> {row['Blok']}"
-            ),
+            popup=(f"<b>Owner:</b> {row['Owner']}<br>"
+                   f"<b>Desa:</b> {row['Desa']}<br>"
+                   f"<b>Tanggal:</b> {row['Tanggal'].date()} {row['Jam']}<br>"
+                   f"<b>Penutup Lahan:</b> {row['Penutup Lahan']}<br>"
+                   f"<b>Blok:</b> {row['Blok']}")
         ).add_to(m)
 
     folium.LayerControl().add_to(m)
-    st_folium(m, width=800, height=600)
+
+    st_folium(m, width=None, height=800)
 
 with col2:
-    st.subheader("Statistik Hotspot")
-
-    desa_count = filtered_df.groupby("Desa").size().reset_index(name="Jumlah Hotspot")
-    if not desa_count.empty:
-        chart_desa = alt.Chart(desa_count).mark_bar().encode(
-            x="Jumlah Hotspot:Q",
-            y=alt.Y("Desa:N", sort="-x")
+    if not filtered_df.empty:
+        desa_counts = filtered_df.groupby("Desa").size().reset_index(name="Jumlah")
+        chart_desa = alt.Chart(desa_counts).mark_bar().encode(
+            x="Jumlah:Q",
+            y=alt.Y("Desa:N", sort="-x"),
+            tooltip=["Desa", "Jumlah"]
         ).properties(title="Hotspot per Desa", height=250)
         st.altair_chart(chart_desa, use_container_width=True)
 
-    if not filtered_df.empty:
-        blok_bulan = (
-            filtered_df
-            .assign(Bulan=filtered_df["Tanggal"].dt.to_period("M").astype(str))
-            .groupby(["Blok", "Bulan"])
-            .size()
-            .reset_index(name="Jumlah Hotspot")
-        )
+        filtered_df["Bulan"] = filtered_df["Tanggal"].dt.to_period("M").dt.to_timestamp()
+        filtered_df["BulanLabel"] = filtered_df["Bulan"].dt.strftime("%B %Y")
 
-        chart_blok = alt.Chart(blok_bulan).mark_bar().encode(
-            x="Bulan:N",
-            y="Jumlah Hotspot:Q",
+        blok_month = filtered_df.groupby(["Blok", "BulanLabel"]).size().reset_index(name="Jumlah")
+
+        chart_blok = alt.Chart(blok_month).mark_bar().encode(
+            x=alt.X("BulanLabel:N", sort=list(filtered_df["BulanLabel"].unique())),
+            y="Jumlah:Q",
             color="Blok:N",
-            tooltip=["Blok", "Bulan", "Jumlah Hotspot"]
-        ).properties(title="Hotspot per Blok per Bulan", height=300)
+            tooltip=["Blok", "BulanLabel", "Jumlah"]
+        ).properties(title="Hotspot per Blok per Bulan", height=250)
         st.altair_chart(chart_blok, use_container_width=True)
+    else:
+        st.info("Tidak ada data untuk filter yang dipilih.")
