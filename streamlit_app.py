@@ -56,17 +56,20 @@ selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.ke
 left_col, right_col = st.columns([3, 1])
 
 with left_col:
-
     with open("aoi.json", "r") as f:
         boundary = json.load(f)
 
-    coords = boundary["features"][0]["geometry"]["coordinates"][0]
-    lats = [c[1] for c in coords]
-    lons = [c[0] for c in coords]
-    bounds = [[min(lats), min(lons)], [max(lats), max(lons)]]
+    center = [0.8027919554277106, 110.29676071517376]
 
-    m = folium.Map(tiles=basemap_options[selected_basemap])
-    m.fit_bounds(bounds)
+    try:
+        coords = boundary["features"][0]["geometry"]["coordinates"][0]
+        lats = [c[1] for c in coords]
+        lons = [c[0] for c in coords]
+        bounds = [[min(lats), min(lons)], [max(lats), max(lons)]]
+    except Exception:
+        bounds = None
+
+    m = folium.Map(location=center, zoom_start=15, tiles=basemap_options[selected_basemap])
 
     folium.GeoJson(
         boundary,
@@ -97,7 +100,8 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
-    st_folium(m, width="100%", height=700)
+    map_height = 700
+    map_obj = st_folium(m, width="100%", height=map_height)
 
 with right_col:
     st.subheader("Statistik")
