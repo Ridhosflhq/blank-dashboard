@@ -44,7 +44,7 @@ selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.ke
 
 m = folium.Map(location=[-0.5, 110.5], zoom_start=7, tiles=basemap_options[selected_basemap])
 
-with open("CMI.json", "r") as f:
+with open("aoi.json", "r") as f:
     boundary = json.load(f)
 
 folium.GeoJson(
