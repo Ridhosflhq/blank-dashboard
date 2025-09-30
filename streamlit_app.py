@@ -40,7 +40,6 @@ st.sidebar.write(f"Total Hotspot: {len(filtered_df)}")
 col1, col2 = st.columns([2, 1], gap="small")
 
 with col1:
-
     with open("aoi.json", "r") as f:
         boundary = json.load(f)
 
@@ -52,11 +51,16 @@ with col1:
             for poly in geom["coordinates"]:
                 coords.extend(poly[0])
 
-    extract_coords(boundary["features"][0]["geometry"])
-    lats, lons = zip(*coords)
-    center_lat, center_lon = sum(lats) / len(lats), sum(lons) / len(lons)
+    for feat in boundary["features"]:
+        extract_coords(feat["geometry"])
 
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=15, tiles="CartoDB positron")
+    if coords:
+        lats, lons = zip(*coords)
+        center_lat, center_lon = sum(lats) / len(lats), sum(lons) / len(lons)
+    else:
+        center_lat, center_lon = -0.5, 110.5
+
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=15, tiles="CartoDB.Positron")
 
     folium.GeoJson(
         boundary,
@@ -82,7 +86,7 @@ with col1:
         ).add_to(m)
 
     folium.LayerControl().add_to(m)
-    st_folium(m, width="100%", height=700)
+    st_folium(m, width=800, height=600)
 
 with col2:
     st.subheader("Statistik Hotspot")
