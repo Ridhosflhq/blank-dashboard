@@ -94,7 +94,7 @@ with left_col:
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
-            radius=5,
+            radius=2,
             color="red",
             fill=True,
             fill_color="red",
@@ -110,7 +110,7 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
-    map_height = 900
+    map_height = 750
     st_folium(m, width="100%", height=map_height)
 
 with right_col:
