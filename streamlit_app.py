@@ -5,10 +5,6 @@ from streamlit_folium import st_folium
 import json
 import plotly.express as px
 
-st.set_page_config(page_title="Fire Hotspot Dashboard", layout="wide")
-
-st.title("Fire Hotspot Dashboard")
-
 url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTbJg8ZlumI6gCGSj0ayEiKYeskiVmxtBR81PSjACW-hmAMJFycXtcen-TZ2bJCp23C9g69aMCdXor/pub?output=csv"
 df = pd.read_csv(url)
 
@@ -113,7 +109,7 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
-    map_height = 800
+    map_height = 750
     st_folium(m, width="100%", height=map_height)
 
 with right_col:
