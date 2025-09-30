@@ -56,35 +56,47 @@ selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.ke
 left_col, right_col = st.columns([3, 1])
 
 with left_col:
-    with open("aoi.json", "r") as f:
-        boundary = json.load(f)
-
-    center = [0.8027919554277106, 110.29676071517376]
-
     try:
-        coords = boundary["features"][0]["geometry"]["coordinates"][0]
-        lats = [c[1] for c in coords]
-        lons = [c[0] for c in coords]
-        bounds = [[min(lats), min(lons)], [max(lats), max(lons)]]
+        with open("aoi.json", "r") as f:
+            boundary = json.load(f)
+
+        bounds_coords = []
+        for feature in boundary["features"]:
+            coords = feature["geometry"]["coordinates"]
+            if feature["geometry"]["type"] == "Polygon":
+                bounds_coords.extend(coords[0])
+            elif feature["geometry"]["type"] == "MultiPolygon":
+                for poly in coords:
+                    bounds_coords.extend(poly[0])
+
+        lats = [c[1] for c in bounds_coords]
+        lons = [c[0] for c in bounds_coords]
+        min_lat, max_lat = min(lats), max(lats)
+        min_lon, max_lon = min(lons), max(lons)
+
+        m = folium.Map(tiles=basemap_options[selected_basemap])
+        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
+
+        folium.GeoJson(
+            boundary,
+            name="Boundary",
+            style_function=lambda x: {
+                "color": "blue",
+                "weight": 2,
+                "fillOpacity": 0,
+            }
+        ).add_to(m)
+
     except Exception:
-        bounds = None
 
-    m = folium.Map(location=center, zoom_start=15, tiles=basemap_options[selected_basemap])
-
-    folium.GeoJson(
-        boundary,
-        name="Boundary",
-        style_function=lambda x: {
-            "color": "blue",
-            "weight": 2,
-            "fillOpacity": 0,
-        }
-    ).add_to(m)
+        m = folium.Map(location=[0.8027919554277106, 110.29676071517376],
+                       zoom_start=10,
+                       tiles=basemap_options[selected_basemap])
 
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
-            radius=5,
+            radius=3,
             color="red",
             fill=True,
             fill_color="red",
@@ -101,7 +113,7 @@ with left_col:
     folium.LayerControl().add_to(m)
 
     map_height = 700
-    map_obj = st_folium(m, width="100%", height=map_height)
+    st_folium(m, width="100%", height=map_height)
 
 with right_col:
     st.subheader("Statistik")
@@ -125,6 +137,7 @@ with right_col:
             ])
             .size()
             .reset_index(name="Jumlah")
+            .sort_values("Tanggal")
         )
         fig_blok = px.bar(
             df_monthly,
