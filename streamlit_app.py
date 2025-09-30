@@ -108,7 +108,7 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
-    map_height = 800
+    map_height = 900
     st_folium(m, width="100%", height=map_height)
 
 with right_col:
