@@ -5,8 +5,6 @@ from streamlit_folium import st_folium
 import json
 import plotly.express as px
 
-
-
 url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTbJg8ZlumI6gCGSj0ayEiKYeskiVmxtBR81PSjACW-hmAMJFycXtcen-TZ2bJCp23C9g69aMCdXor/pub?output=csv"
 df = pd.read_csv(url)
 
@@ -73,7 +71,7 @@ with left_col:
         min_lon, max_lon = min(lons), max(lons)
 
         m = folium.Map(tiles=basemap_options[selected_basemap])
-        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(30, 30))
+        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(50, 50))
 
         folium.GeoJson(
             boundary,
@@ -128,6 +126,7 @@ with right_col:
             height=300
         )
         st.plotly_chart(fig_desa, use_container_width=True)
+
 
         df_monthly = (
             filtered_df.groupby([
