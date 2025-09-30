@@ -72,7 +72,7 @@ with left_col:
 
         m = folium.Map(tiles=basemap_options[selected_basemap])
  
-        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(80, 80))
+        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(30, 30))
 
         folium.GeoJson(
             boundary,
