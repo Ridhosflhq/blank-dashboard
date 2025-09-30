@@ -5,18 +5,12 @@ from streamlit_folium import st_folium
 import json
 import plotly.express as px
 
-st.set_page_config(page_title="Fire Hotspot Dashboard", layout="wide")
-
-st.title("Fire Hotspot Dashboard")
-
-# === Load Data ===
 url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTbJg8ZlumI6gCGSj0ayEiKYeskiVmxtBR81PSjACW-hmAMJFycXtcen-TZ2bJCp23C9g69aMCdXor/pub?output=csv"
 df = pd.read_csv(url)
 
 df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors="coerce")
 df = df[df["Ket"] == "Titik Api"]
 
-# === Sidebar Filter ===
 st.sidebar.header("Filter Options")
 
 min_date, max_date = df["Tanggal"].min().date(), df["Tanggal"].max().date()
@@ -46,7 +40,6 @@ filtered_df = df[mask]
 
 st.sidebar.write(f"Total Hotspot: **{len(filtered_df)}**")
 
-# === Basemap ===
 basemap_options = {
     "OpenStreetMap": "OpenStreetMap",
     "CartoDB Positron": "CartoDB positron",
@@ -56,7 +49,6 @@ basemap_options = {
 }
 selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.keys()))
 
-# === Layout ===
 left_col, right_col = st.columns([3, 1])
 
 with left_col:
@@ -64,7 +56,6 @@ with left_col:
         with open("aoi.json", "r") as f:
             boundary = json.load(f)
 
-        # Ambil semua koordinat AOI
         bounds_coords = []
         for feature in boundary["features"]:
             coords = feature["geometry"]["coordinates"]
@@ -79,12 +70,10 @@ with left_col:
         min_lat, max_lat = min(lats), max(lats)
         min_lon, max_lon = min(lons), max(lons)
 
-        # Buat map
         m = folium.Map(tiles=basemap_options[selected_basemap])
-        # Tambahkan padding biar tidak ngepres
+
         m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(50, 50))
 
-        # Tambahkan AOI boundary
         folium.GeoJson(
             boundary,
             name="Boundary",
@@ -96,12 +85,10 @@ with left_col:
         ).add_to(m)
 
     except Exception:
-        # fallback center kalau AOI gagal
         m = folium.Map(location=[0.8027919554277106, 110.29676071517376],
                        zoom_start=10,
                        tiles=basemap_options[selected_basemap])
 
-    # Titik hotspot
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
@@ -121,7 +108,6 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
-    # Tinggikan peta (dari 700 ke 900)
     map_height = 900
     st_folium(m, width="100%", height=map_height)
 
@@ -129,7 +115,7 @@ with right_col:
     st.subheader("Statistik")
 
     if not filtered_df.empty:
-        # Hotspot per Desa
+
         desa_count = filtered_df["Desa"].value_counts().reset_index()
         desa_count.columns = ["Desa", "Jumlah"]
         fig_desa = px.bar(
@@ -141,7 +127,6 @@ with right_col:
         )
         st.plotly_chart(fig_desa, use_container_width=True)
 
-        # Hotspot per Bulan per Blok
         df_monthly = (
             filtered_df.groupby([
                 filtered_df["Tanggal"].dt.to_period("M"),
@@ -149,9 +134,9 @@ with right_col:
             ])
             .size()
             .reset_index(name="Jumlah")
-            .sort_values("Tanggal")  # sort by real period (tahun → bulan)
+            .sort_values("Tanggal") 
         )
-        # Tambahkan kolom label untuk axis (MM/YY)
+ 
         df_monthly["Label"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
 
         fig_blok = px.bar(
