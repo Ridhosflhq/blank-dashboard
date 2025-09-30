@@ -75,7 +75,8 @@ with left_col:
         min_lon, max_lon = min(lons), max(lons)
 
         m = folium.Map(tiles=basemap_options[selected_basemap])
-        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
+
+        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(50, 50))
 
         folium.GeoJson(
             boundary,
@@ -96,7 +97,7 @@ with left_col:
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
-            radius=3,
+            radius=5,
             color="red",
             fill=True,
             fill_color="red",
@@ -119,6 +120,7 @@ with right_col:
     st.subheader("Statistik")
 
     if not filtered_df.empty:
+
         desa_count = filtered_df["Desa"].value_counts().reset_index()
         desa_count.columns = ["Desa", "Jumlah"]
         fig_desa = px.bar(
@@ -137,7 +139,7 @@ with right_col:
             ])
             .size()
             .reset_index(name="Jumlah")
-            .sort_values("Tanggal")
+            .sort_values("Tanggal") 
         )
         fig_blok = px.bar(
             df_monthly,
