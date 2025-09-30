@@ -5,11 +5,16 @@ from streamlit_folium import st_folium
 import json
 import plotly.express as px
 
+st.set_page_config(page_title="Fire Hotspot Dashboard", layout="wide")
+
+st.title("Fire Hotspot Dashboard")
+
 url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTbJg8ZlumI6gCGSj0ayEiKYeskiVmxtBR81PSjACW-hmAMJFycXtcen-TZ2bJCp23C9g69aMCdXor/pub?output=csv"
 df = pd.read_csv(url)
 
 df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors="coerce")
 df = df[df["Ket"] == "Titik Api"]
+
 
 st.sidebar.header("Filter Options")
 
@@ -49,6 +54,7 @@ basemap_options = {
 }
 selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.keys()))
 
+
 left_col, right_col = st.columns([3, 1])
 
 with left_col:
@@ -56,6 +62,7 @@ with left_col:
         with open("aoi.json", "r") as f:
             boundary = json.load(f)
 
+       
         bounds_coords = []
         for feature in boundary["features"]:
             coords = feature["geometry"]["coordinates"]
@@ -71,9 +78,10 @@ with left_col:
         min_lon, max_lon = min(lons), max(lons)
 
         m = folium.Map(tiles=basemap_options[selected_basemap])
-
+        
         m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(50, 50))
 
+        
         folium.GeoJson(
             boundary,
             name="Boundary",
@@ -85,10 +93,12 @@ with left_col:
         ).add_to(m)
 
     except Exception:
+       
         m = folium.Map(location=[0.8027919554277106, 110.29676071517376],
                        zoom_start=10,
                        tiles=basemap_options[selected_basemap])
 
+ 
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
@@ -108,6 +118,7 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
+    
     map_height = 900
     st_folium(m, width="100%", height=map_height)
 
@@ -115,7 +126,7 @@ with right_col:
     st.subheader("Statistik")
 
     if not filtered_df.empty:
-
+  
         desa_count = filtered_df["Desa"].value_counts().reset_index()
         desa_count.columns = ["Desa", "Jumlah"]
         fig_desa = px.bar(
@@ -136,7 +147,7 @@ with right_col:
             .reset_index(name="Jumlah")
             .sort_values("Tanggal") 
         )
- 
+
         df_monthly["Label"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
 
         fig_blok = px.bar(
