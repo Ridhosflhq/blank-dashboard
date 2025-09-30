@@ -7,8 +7,6 @@ import plotly.express as px
 
 st.set_page_config(page_title="Fire Hotspot Dashboard", layout="wide")
 
-st.title("Fire Hotspot Dashboard")
-
 url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTbJg8ZlumI6gCGSj0ayEiKYeskiVmxtBR81PSjACW-hmAMJFycXtcen-TZ2bJCp23C9g69aMCdXor/pub?output=csv"
 df = pd.read_csv(url)
 
@@ -60,18 +58,14 @@ with left_col:
     with open("aoi.json", "r") as f:
         boundary = json.load(f)
 
-    bounds = None
-    try:
-        coords = boundary["features"][0]["geometry"]["coordinates"][0]
-        lats = [c[1] for c in coords]
-        lons = [c[0] for c in coords]
-        bounds = [[min(lats), min(lons)], [max(lats), max(lons)]]
-        center = [(min(lats) + max(lats)) / 2, (min(lons) + max(lons)) / 2]
-    except Exception:
-        center = [-0.5, 110.5]
-        bounds = None
+    coords = boundary["features"][0]["geometry"]["coordinates"][0]
+    lats = [c[1] for c in coords]
+    lons = [c[0] for c in coords]
+    bounds = [[min(lats), min(lons)], [max(lats), max(lons)]]
 
-    m = folium.Map(location=center, zoom_start=15, tiles=basemap_options[selected_basemap])
+    m = folium.Map(tiles=basemap_options[selected_basemap])
+
+    m.fit_bounds(bounds)
 
     folium.GeoJson(
         boundary,
@@ -86,7 +80,7 @@ with left_col:
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
-            radius=5,
+            radius=3,
             color="red",
             fill=True,
             fill_color="red",
@@ -103,19 +97,28 @@ with left_col:
     folium.LayerControl().add_to(m)
 
     map_height = 700
-    map_obj = st_folium(m, width="100%", height=map_height)
+    st_folium(m, width="100%", height=map_height)
 
 with right_col:
-    st.subheader("📊 Statistik")
+    st.subheader("Statistik")
 
     if not filtered_df.empty:
-        desa_count = filtered_df["Desa"].value_counts().reset_index()
-        desa_count.columns = ["Desa", "Jumlah"]
+        desa_monthly = (
+            filtered_df.groupby([
+                filtered_df["Tanggal"].dt.to_period("M").dt.strftime("%m/%y"),
+                "Desa"
+            ])
+            .size()
+            .reset_index(name="Jumlah")
+        )
+
+        desa_monthly["Tanggal_dt"] = pd.to_datetime(desa_monthly["Tanggal"], format="%m/%y")
+        desa_monthly = desa_monthly.sort_values("Tanggal_dt")
+
         fig_desa = px.bar(
-            desa_count,
-            x="Jumlah", y="Desa",
-            orientation="h",
-            title="Hotspot per Desa",
+            desa_monthly,
+            x="Tanggal", y="Jumlah", color="Desa",
+            title="Hotspot per Desa per Bulan",
             height=300
         )
         st.plotly_chart(fig_desa, use_container_width=True)
@@ -128,6 +131,9 @@ with right_col:
             .size()
             .reset_index(name="Jumlah")
         )
+        df_monthly["Tanggal_dt"] = pd.to_datetime(df_monthly["Tanggal"], format="%m/%y")
+        df_monthly = df_monthly.sort_values("Tanggal_dt")
+
         fig_blok = px.bar(
             df_monthly,
             x="Tanggal", y="Jumlah", color="Blok",
