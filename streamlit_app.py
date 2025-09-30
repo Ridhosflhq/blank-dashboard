@@ -71,6 +71,7 @@ with left_col:
         min_lon, max_lon = min(lons), max(lons)
 
         m = folium.Map(tiles=basemap_options[selected_basemap])
+ 
         m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(50, 50))
 
         folium.GeoJson(
@@ -92,7 +93,7 @@ with left_col:
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
-            radius=2,
+            radius=5,
             color="red",
             fill=True,
             fill_color="red",
@@ -126,7 +127,6 @@ with right_col:
             height=300
         )
         st.plotly_chart(fig_desa, use_container_width=True)
-
 
         df_monthly = (
             filtered_df.groupby([
