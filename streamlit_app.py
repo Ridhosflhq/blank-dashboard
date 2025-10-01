@@ -5,11 +5,17 @@ from streamlit_folium import st_folium
 import json
 import plotly.express as px
 
+# ===============================
+# Load data
+# ===============================
 url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTbJg8ZlumI6gCGSj0ayEiKYeskiVmxtBR81PSjACW-hmAMJFycXtcen-TZ2bJCp23C9g69aMCdXor/pub?output=csv"
 df = pd.read_csv(url)
 df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors="coerce")
 df = df[df["Ket"] == "Titik Api"]
 
+# ===============================
+# Sidebar filter
+# ===============================
 st.sidebar.header("Filter Options")
 min_date, max_date = df["Tanggal"].min().date(), df["Tanggal"].max().date()
 quick_filter = st.sidebar.selectbox("Quick Date Range", ["Semua", "1 Minggu Terakhir", "1 Bulan Terakhir", "6 Bulan Terakhir"])
@@ -21,12 +27,17 @@ elif quick_filter == "1 Bulan Terakhir":
     start_date, end_date = max_date - pd.DateOffset(months=1), max_date
 elif quick_filter == "6 Bulan Terakhir":
     start_date, end_date = max_date - pd.DateOffset(months=6), max_date
+
 col1, col2 = st.sidebar.columns(2)
 start_date = col1.date_input("Tanggal Awal", value=start_date, min_value=min_date, max_value=max_date)
 end_date = col2.date_input("Tanggal Akhir", value=end_date, min_value=min_date, max_value=max_date)
+
+# Filter awal berdasarkan tanggal
 filtered_df = df[(df["Tanggal"].dt.date >= start_date) & (df["Tanggal"].dt.date <= end_date)]
+
 st.sidebar.write(f"Total Hotspot: **{len(filtered_df)}**")
 
+# Basemap selection
 basemap_options = {
     "OpenStreetMap": "OpenStreetMap",
     "CartoDB Positron": "CartoDB positron",
@@ -36,39 +47,79 @@ basemap_options = {
 }
 selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.keys()))
 
+# ===============================
+# Layout
+# ===============================
 st.markdown("""
     <style>
-    /* Nonaktifkan scroll di body */
     body {overflow: hidden;}
-    /* Full height untuk container */
     .stApp {height: 100vh; overflow: hidden;}
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 left_col, right_col = st.columns([3, 1])
 
+# ===============================
+# Helper function untuk filter interaktif
+# ===============================
+def get_selected_desa(selected_data, column="Desa"):
+    if selected_data and "points" in selected_data:
+        return [pt["y"] for pt in selected_data["points"]]
+    return []
+
+# ===============================
+# Grafik dan peta
+# ===============================
+with right_col:
+    st.subheader("Statistik")
+
+    if not filtered_df.empty:
+        # Hotspot per Desa
+        desa_count = filtered_df["Desa"].value_counts().reset_index()
+        desa_count.columns = ["Desa","Jumlah"]
+        fig_desa = px.bar(desa_count, x="Jumlah", y="Desa", orientation="h",
+                          title="Hotspot per Desa", height=300)
+        fig_desa.update_layout(clickmode='event+select')
+        desa_selection = st.plotly_chart(fig_desa, use_container_width=True, theme="streamlit")
+        
+        # Hotspot per Blok per Bulan
+        df_monthly = (filtered_df.groupby([filtered_df["Tanggal"].dt.to_period("M"), "Blok"])
+                      .size().reset_index(name="Jumlah").sort_values("Tanggal"))
+        df_monthly["Satuan Waktu"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
+        fig_blok = px.bar(df_monthly, x="Satuan Waktu", y="Jumlah", color="Blok",
+                          title="Hotspot per Blok per Bulan", height=400)
+        st.plotly_chart(fig_blok, use_container_width=True)
+    else:
+        st.info("Tidak ada data pada rentang tanggal ini.")
+
+# ===============================
+# Filter peta berdasarkan klik grafik Desa
+# ===============================
+selected_desa = st.session_state.get("selected_desa", None)
+
 with left_col:
-  
-    st.markdown("""
-        <script>
-        const height = window.innerHeight - 50;
-        document.body.setAttribute('data-map-height', height);
-        </script>
-    """, unsafe_allow_html=True)
-
     map_height = 700
-
     center = [0.8028, 110.2967]
+    
+    # Jika ada desa yang dipilih di grafik, filter data
+    if selected_desa:
+        map_df = filtered_df[filtered_df["Desa"].isin(selected_desa)]
+    else:
+        map_df = filtered_df.copy()
+    
     m = folium.Map(location=center, zoom_start=12, tiles=basemap_options[selected_basemap])
 
+    # Load AOI
     try:
         with open("aoi.json") as f:
             boundary = json.load(f)
-        folium.GeoJson(boundary, name="Boundary", style_function=lambda x: {"color":"blue","weight":2,"fillOpacity":0}).add_to(m)
+        folium.GeoJson(boundary, name="Boundary",
+                       style_function=lambda x: {"color":"blue","weight":2,"fillOpacity":0}).add_to(m)
     except:
         st.warning("AOI JSON tidak ditemukan atau gagal dibaca.")
 
-    for _, row in filtered_df.iterrows():
+    # Tambahkan titik hotspot
+    for _, row in map_df.iterrows():
         folium.CircleMarker(location=[row["latitude"], row["longitude"]],
                             radius=2, color="red", fill=True, fill_color="red", fill_opacity=1,
                             popup=(f"<b>Owner:</b> {row['Owner']}<br>"
@@ -79,19 +130,3 @@ with left_col:
 
     folium.LayerControl().add_to(m)
     st_folium(m, width="100%", height=map_height)
-
-with right_col:
-    st.subheader("Statistik")
-    if not filtered_df.empty:
-        desa_count = filtered_df["Desa"].value_counts().reset_index()
-        desa_count.columns = ["Desa","Jumlah"]
-        fig_desa = px.bar(desa_count, x="Jumlah", y="Desa", orientation="h", title="Hotspot per Desa", height=300)
-        st.plotly_chart(fig_desa, use_container_width=True)
-
-        df_monthly = (filtered_df.groupby([filtered_df["Tanggal"].dt.to_period("M"), "Blok"])
-                      .size().reset_index(name="Jumlah").sort_values("Tanggal"))
-        df_monthly["Satuan Waktu"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
-        fig_blok = px.bar(df_monthly, x="Satuan Waktu", y="Jumlah", color="Blok", title="Hotspot per Blok per Bulan", height=400)
-        st.plotly_chart(fig_blok, use_container_width=True)
-    else:
-        st.info("Tidak ada data pada rentang tanggal ini.")
