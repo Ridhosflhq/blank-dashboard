@@ -5,17 +5,11 @@ from streamlit_folium import st_folium
 import json
 import plotly.express as px
 
-# ===== Streamlit Config =====
-st.set_page_config(page_title="Fire Hotspot Dashboard", layout="wide")
-st.title("Fire Hotspot Dashboard")
-
-# ===== Load Data =====
 url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTbJg8ZlumI6gCGSj0ayEiKYeskiVmxtBR81PSjACW-hmAMJFycXtcen-TZ2bJCp23C9g69aMCdXor/pub?output=csv"
 df = pd.read_csv(url)
 df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors="coerce")
 df = df[df["Ket"] == "Titik Api"]
 
-# ===== Sidebar Filter =====
 st.sidebar.header("Filter Options")
 min_date, max_date = df["Tanggal"].min().date(), df["Tanggal"].max().date()
 quick_filter = st.sidebar.selectbox("Quick Date Range", ["Semua", "1 Minggu Terakhir", "1 Bulan Terakhir", "6 Bulan Terakhir"])
@@ -33,7 +27,6 @@ end_date = col2.date_input("Tanggal Akhir", value=end_date, min_value=min_date, 
 filtered_df = df[(df["Tanggal"].dt.date >= start_date) & (df["Tanggal"].dt.date <= end_date)]
 st.sidebar.write(f"Total Hotspot: **{len(filtered_df)}**")
 
-# ===== Basemap =====
 basemap_options = {
     "OpenStreetMap": "OpenStreetMap",
     "CartoDB Positron": "CartoDB positron",
@@ -43,7 +36,6 @@ basemap_options = {
 }
 selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.keys()))
 
-# ===== CSS untuk kunci scroll =====
 st.markdown("""
     <style>
     /* Nonaktifkan scroll di body */
@@ -53,25 +45,22 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# ===== Layout =====
 left_col, right_col = st.columns([3, 1])
 
 with left_col:
-    # ===== Hitung tinggi peta dinamis =====
+  
     st.markdown("""
         <script>
         const height = window.innerHeight - 50;
         document.body.setAttribute('data-map-height', height);
         </script>
     """, unsafe_allow_html=True)
-    # Fallback tinggi peta jika JS tidak jalan
+
     map_height = 700
 
-    # ===== Map =====
     center = [0.8028, 110.2967]
     m = folium.Map(location=center, zoom_start=12, tiles=basemap_options[selected_basemap])
 
-    # ===== AOI Layer =====
     try:
         with open("aoi.json") as f:
             boundary = json.load(f)
@@ -79,7 +68,6 @@ with left_col:
     except:
         st.warning("AOI JSON tidak ditemukan atau gagal dibaca.")
 
-    # ===== Hotspot Layer =====
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(location=[row["latitude"], row["longitude"]],
                             radius=5, color="red", fill=True, fill_color="red", fill_opacity=1,
