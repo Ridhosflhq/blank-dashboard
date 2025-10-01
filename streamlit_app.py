@@ -108,7 +108,7 @@ with left_col:
     except Exception:
 
         m = folium.Map(location=[0.8028, 110.2967],
-                       zoom_start=10,
+                       zoom_start=13,
                        tiles=basemap_options[selected_basemap])
 
     for _, row in filtered_df.iterrows():
