@@ -15,6 +15,7 @@ df = df[df["Ket"] == "Titik Api"]
 # Sidebar filters
 st.sidebar.header("Filter Options")
 min_date, max_date = df["Tanggal"].min().date(), df["Tanggal"].max().date()
+
 quick_filter = st.sidebar.selectbox(
     "Quick Date Range",
     ["Semua", "1 Minggu Terakhir", "1 Bulan Terakhir", "6 Bulan Terakhir"]
@@ -37,6 +38,7 @@ end_date = col2.date_input("Tanggal Akhir", value=end_date, min_value=min_date, 
 
 mask = (df["Tanggal"].dt.date >= start_date) & (df["Tanggal"].dt.date <= end_date)
 filtered_df = df[mask]
+
 st.sidebar.write(f"Total Hotspot: **{len(filtered_df)}**")
 
 basemap_options = {
@@ -56,7 +58,6 @@ with left_col:
         with open("aoi.json", "r") as f:
             boundary = json.load(f)
 
-        # Dapatkan bounds AOI
         bounds_coords = []
         for feature in boundary["features"]:
             coords = feature["geometry"]["coordinates"]
@@ -72,18 +73,12 @@ with left_col:
         min_lon, max_lon = min(lons), max(lons)
 
         m = folium.Map(tiles=basemap_options[selected_basemap])
-        
-        # Zoom out sedikit supaya tidak nge-pres
-        m.fit_bounds(
-            [[min_lat - 0.01, min_lon - 0.01], [max_lat + 0.01, max_lon + 0.01]],
-            padding=(30, 30)
-        )
+        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(25, 25))  # padding lebih kecil
 
-        # Tambahkan boundary
         folium.GeoJson(
             boundary,
             name="Boundary",
-            style_function=lambda x: {"color": "blue", "weight": 2, "fillOpacity": 0}
+            style_function=lambda x: {"color": "blue", "weight": 2, "fillOpacity": 0},
         ).add_to(m)
 
     except Exception:
@@ -93,7 +88,6 @@ with left_col:
             tiles=basemap_options[selected_basemap]
         )
 
-    # Tambahkan titik hotspot
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
@@ -113,22 +107,26 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
-    # Sesuaikan tinggi map agar muat 1 halaman
-    st_folium(m, width="100%", height=650)
+    map_height = 650  # lebih compact
+    st_folium(m, width="100%", height=map_height)
 
 with right_col:
     st.subheader("Statistik")
+
     if not filtered_df.empty:
+        # Statistik desa
         desa_count = filtered_df["Desa"].value_counts().reset_index()
         desa_count.columns = ["Desa", "Jumlah"]
         fig_desa = px.bar(
-            desa_count, x="Jumlah", y="Desa",
+            desa_count,
+            x="Jumlah", y="Desa",
             orientation="h",
             title="Hotspot per Desa",
-            height=300
+            height=250
         )
         st.plotly_chart(fig_desa, use_container_width=True)
 
+        # Statistik blok per bulan
         df_monthly = (
             filtered_df.groupby([
                 filtered_df["Tanggal"].dt.to_period("M"),
@@ -141,9 +139,10 @@ with right_col:
         df_monthly["Label"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
 
         fig_blok = px.bar(
-            df_monthly, x="Label", y="Jumlah", color="Blok",
+            df_monthly,
+            x="Label", y="Jumlah", color="Blok",
             title="Hotspot per Blok per Bulan",
-            height=400
+            height=350
         )
         st.plotly_chart(fig_blok, use_container_width=True)
     else:
