@@ -14,7 +14,6 @@ df = pd.read_csv(url)
 df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors="coerce")
 df = df[df["Ket"] == "Titik Api"]
 
-
 st.sidebar.header("Filter Options")
 
 min_date, max_date = df["Tanggal"].min().date(), df["Tanggal"].max().date()
@@ -55,7 +54,7 @@ selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.ke
 
 left_col, right_col = st.columns([3, 1])
 
-height_js = st.markdown(
+st.markdown(
     """
     <script>
     function sendHeight(){
@@ -89,8 +88,8 @@ with left_col:
         min_lat, max_lat = min(lats), max(lats)
         min_lon, max_lon = min(lons), max(lons)
 
-        center_lat = (min_lat + max_lat) / 2
-        center_lon = (min_lon + max_lon) / 2
+
+        center_lat, center_lon = 0.8028, 110.2967
 
         m = folium.Map(location=[center_lat, center_lon], tiles=basemap_options[selected_basemap])
 
@@ -107,6 +106,7 @@ with left_col:
         ).add_to(m)
 
     except Exception:
+
         m = folium.Map(location=[0.8028, 110.2967],
                        zoom_start=10,
                        tiles=basemap_options[selected_basemap])
