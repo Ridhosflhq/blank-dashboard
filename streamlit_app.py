@@ -6,7 +6,6 @@ import json
 import plotly.express as px
 
 st.set_page_config(page_title="Fire Hotspot Dashboard", layout="wide")
-
 st.title("Fire Hotspot Dashboard")
 
 
@@ -15,6 +14,7 @@ df = pd.read_csv(url)
 
 df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors="coerce")
 df = df[df["Ket"] == "Titik Api"]
+
 
 st.sidebar.header("Filter Options")
 
@@ -44,6 +44,7 @@ mask = (df["Tanggal"].dt.date >= start_date) & (df["Tanggal"].dt.date <= end_dat
 filtered_df = df[mask]
 
 st.sidebar.write(f"Total Hotspot: **{len(filtered_df)}**")
+
 
 basemap_options = {
     "OpenStreetMap": "OpenStreetMap",
@@ -75,12 +76,22 @@ with left_col:
         min_lat, max_lat = min(lats), max(lats)
         min_lon, max_lon = min(lons), max(lons)
 
-   
-        m = folium.Map(tiles=basemap_options[selected_basemap])
-        
+  
+        center_lat = (min_lat + max_lat) / 2
+        center_lon = (min_lon + max_lon) / 2
+
+        lat_diff = max_lat - min_lat
+        lon_diff = max_lon - min_lon
+        map_height = int(600 * (lat_diff / lon_diff + 1))  
+        map_height = max(500, min(map_height, 900)) 
+
+  
+        m = folium.Map(location=[center_lat, center_lon], tiles=basemap_options[selected_basemap])
+
+
         m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(50, 50))
 
-       
+
         folium.GeoJson(
             boundary,
             name="Boundary",
@@ -92,11 +103,10 @@ with left_col:
         ).add_to(m)
 
     except Exception:
-        
-        m = folium.Map(location=[0.8027919554277106, 110.29676071517376],
+        m = folium.Map(location=[0.8028, 110.2967],
                        zoom_start=10,
                        tiles=basemap_options[selected_basemap])
-
+        map_height = 600  
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
@@ -116,14 +126,13 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
-    map_height = 900
     st_folium(m, width="100%", height=map_height)
 
 with right_col:
     st.subheader("Statistik")
 
     if not filtered_df.empty:
-      
+
         desa_count = filtered_df["Desa"].value_counts().reset_index()
         desa_count.columns = ["Desa", "Jumlah"]
         fig_desa = px.bar(
@@ -142,7 +151,7 @@ with right_col:
             ])
             .size()
             .reset_index(name="Jumlah")
-            .sort_values("Tanggal")  
+            .sort_values("Tanggal")
         )
         df_monthly["Label"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
 
