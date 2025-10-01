@@ -90,8 +90,8 @@ with right_col:
 
         df_monthly = (filtered_df.groupby([filtered_df["Tanggal"].dt.to_period("M"), "Blok"])
                       .size().reset_index(name="Jumlah").sort_values("Tanggal"))
-        df_monthly["Label"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
-        fig_blok = px.bar(df_monthly, x="Label", y="Jumlah", color="Blok", title="Hotspot per Blok per Bulan", height=400)
+        df_monthly["Satuan Waktu"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
+        fig_blok = px.bar(df_monthly, x="Satuan Waktu", y="Jumlah", color="Blok", title="Hotspot per Blok per Bulan", height=400)
         st.plotly_chart(fig_blok, use_container_width=True)
     else:
         st.info("Tidak ada data pada rentang tanggal ini.")
