@@ -5,18 +5,14 @@ from streamlit_folium import st_folium
 import json
 import plotly.express as px
 
-
 url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTbJg8ZlumI6gCGSj0ayEiKYeskiVmxtBR81PSjACW-hmAMJFycXtcen-TZ2bJCp23C9g69aMCdXor/pub?output=csv"
 df = pd.read_csv(url)
 
 df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors="coerce")
 df = df[df["Ket"] == "Titik Api"]
 
-
 st.sidebar.header("Filter Options")
-
 min_date, max_date = df["Tanggal"].min().date(), df["Tanggal"].max().date()
-
 quick_filter = st.sidebar.selectbox(
     "Quick Date Range",
     ["Semua", "1 Minggu Terakhir", "1 Bulan Terakhir", "6 Bulan Terakhir"]
@@ -39,7 +35,6 @@ end_date = col2.date_input("Tanggal Akhir", value=end_date, min_value=min_date, 
 
 mask = (df["Tanggal"].dt.date >= start_date) & (df["Tanggal"].dt.date <= end_date)
 filtered_df = df[mask]
-
 st.sidebar.write(f"Total Hotspot: **{len(filtered_df)}**")
 
 basemap_options = {
@@ -59,7 +54,7 @@ with left_col:
         with open("aoi.json", "r") as f:
             boundary = json.load(f)
 
-       
+        # Dapatkan bounds AOI
         bounds_coords = []
         for feature in boundary["features"]:
             coords = feature["geometry"]["coordinates"]
@@ -75,27 +70,26 @@ with left_col:
         min_lon, max_lon = min(lons), max(lons)
 
         m = folium.Map(tiles=basemap_options[selected_basemap])
-        
-        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(50, 50))
+ 
+        m.fit_bounds(
+            [[min_lat - 0.01, min_lon - 0.01], [max_lat + 0.01, max_lon + 0.01]],
+            padding=(30, 30)
+        )
 
-        
+   
         folium.GeoJson(
             boundary,
             name="Boundary",
-            style_function=lambda x: {
-                "color": "blue",
-                "weight": 2,
-                "fillOpacity": 0,
-            }
+            style_function=lambda x: {"color": "blue", "weight": 2, "fillOpacity": 0}
         ).add_to(m)
 
     except Exception:
-       
-        m = folium.Map(location=[0.8027919554277106, 110.29676071517376],
-                       zoom_start=10,
-                       tiles=basemap_options[selected_basemap])
+        m = folium.Map(
+            location=[0.8027919554277106, 110.29676071517376],
+            zoom_start=10,
+            tiles=basemap_options[selected_basemap]
+        )
 
- 
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
@@ -115,20 +109,16 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
-    
-    map_height = 900
-    st_folium(m, width="100%", height=map_height)
+
+    st_folium(m, width="100%", height=650)
 
 with right_col:
     st.subheader("Statistik")
-
     if not filtered_df.empty:
-  
         desa_count = filtered_df["Desa"].value_counts().reset_index()
         desa_count.columns = ["Desa", "Jumlah"]
         fig_desa = px.bar(
-            desa_count,
-            x="Jumlah", y="Desa",
+            desa_count, x="Jumlah", y="Desa",
             orientation="h",
             title="Hotspot per Desa",
             height=300
@@ -142,14 +132,12 @@ with right_col:
             ])
             .size()
             .reset_index(name="Jumlah")
-            .sort_values("Tanggal") 
+            .sort_values("Tanggal")
         )
-
         df_monthly["Label"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
 
         fig_blok = px.bar(
-            df_monthly,
-            x="Label", y="Jumlah", color="Blok",
+            df_monthly, x="Label", y="Jumlah", color="Blok",
             title="Hotspot per Blok per Bulan",
             height=400
         )
