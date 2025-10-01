@@ -40,16 +40,10 @@ basemap_options = {
 }
 selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.keys()))
 
-st.markdown("""
-    <style>
-    body, .stApp, .main {margin:0; padding:0; height:100vh; overflow:hidden;}
-    </style>
-""", unsafe_allow_html=True)
-
 left_col, right_col = st.columns([3, 1])
 
 with left_col:
-    map_height = "90vh"
+    map_height = 850 
 
     center = [0.8028, 110.2967]
     m = folium.Map(location=center, zoom_start=12, tiles=basemap_options[selected_basemap])
@@ -57,8 +51,11 @@ with left_col:
     try:
         with open("aoi.json") as f:
             boundary = json.load(f)
-        folium.GeoJson(boundary, name="Boundary",
-                       style_function=lambda x: {"color":"blue","weight":2,"fillOpacity":0}).add_to(m)
+        folium.GeoJson(
+            boundary,
+            name="Boundary",
+            style_function=lambda x: {"color":"blue","weight":2,"fillOpacity":0}
+        ).add_to(m)
     except:
         st.warning("AOI JSON tidak ditemukan atau gagal dibaca.")
 
@@ -74,20 +71,33 @@ with left_col:
         ).add_to(m)
 
     folium.LayerControl().add_to(m)
+
     st_folium(m, width="100%", height=map_height)
 
 with right_col:
     st.subheader("Statistik")
     if not filtered_df.empty:
+
         desa_count = filtered_df["Desa"].value_counts().reset_index()
         desa_count.columns = ["Desa","Jumlah"]
-        fig_desa = px.bar(desa_count, x="Jumlah", y="Desa", orientation="h", title="Hotspot per Desa", height=300)
+        fig_desa = px.bar(
+            desa_count,
+            x="Jumlah", y="Desa",
+            orientation="h",
+            title="Hotspot per Desa",
+            height=300
+        )
         st.plotly_chart(fig_desa, use_container_width=True)
 
         df_monthly = (filtered_df.groupby([filtered_df["Tanggal"].dt.to_period("M"), "Blok"])
                       .size().reset_index(name="Jumlah").sort_values("Tanggal"))
         df_monthly["Label"] = df_monthly["Tanggal"].dt.strftime("%m/%y")
-        fig_blok = px.bar(df_monthly, x="Label", y="Jumlah", color="Blok", title="Hotspot per Blok per Bulan", height=400)
+        fig_blok = px.bar(
+            df_monthly,
+            x="Label", y="Jumlah", color="Blok",
+            title="Hotspot per Blok per Bulan",
+            height=400
+        )
         st.plotly_chart(fig_blok, use_container_width=True)
     else:
         st.info("Tidak ada data pada rentang tanggal ini.")
