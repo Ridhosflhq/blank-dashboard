@@ -6,7 +6,6 @@ import json
 import plotly.express as px
 
 st.set_page_config(page_title="Fire Monitoring", layout="wide")
-st.title("Fire Monitoring")
 
 url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTbJg8ZlumI6gCGSj0ayEiKYeskiVmxtBR81PSjACW-hmAMJFycXtcen-TZ2bJCp23C9g69aMCdXor/pub?output=csv"
 df = pd.read_csv(url)
@@ -16,6 +15,7 @@ df = df[df["Ket"] == "Titik Api"]
 st.sidebar.header("Filter Options")
 min_date, max_date = df["Tanggal"].min().date(), df["Tanggal"].max().date()
 quick_filter = st.sidebar.selectbox("Quick Date Range", ["Semua", "1 Minggu Terakhir", "1 Bulan Terakhir", "6 Bulan Terakhir"])
+
 if quick_filter == "Semua":
     start_date, end_date = min_date, max_date
 elif quick_filter == "1 Minggu Terakhir":
@@ -24,6 +24,7 @@ elif quick_filter == "1 Bulan Terakhir":
     start_date, end_date = max_date - pd.DateOffset(months=1), max_date
 elif quick_filter == "6 Bulan Terakhir":
     start_date, end_date = max_date - pd.DateOffset(months=6), max_date
+
 col1, col2 = st.sidebar.columns(2)
 start_date = col1.date_input("Tanggal Awal", value=start_date, min_value=min_date, max_value=max_date)
 end_date = col2.date_input("Tanggal Akhir", value=end_date, min_value=min_date, max_value=max_date)
@@ -41,46 +42,36 @@ selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.ke
 
 st.markdown("""
     <style>
-    /* Nonaktifkan scroll di body */
-    body {overflow: hidden;}
-    /* Full height untuk container */
-    .stApp {height: 100vh; overflow: hidden;}
+    body, .stApp, .main {margin:0; padding:0; height:100vh; overflow:hidden;}
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 left_col, right_col = st.columns([3, 1])
 
 with left_col:
-
-    st.markdown("""
-        <script>
-        const height = window.innerHeight - 50;
-        document.body.setAttribute('data-map-height', height);
-        </script>
-    """, unsafe_allow_html=True)
-    map_height = 700
-
+    map_height = "90vh"
 
     center = [0.8028, 110.2967]
     m = folium.Map(location=center, zoom_start=12, tiles=basemap_options[selected_basemap])
 
-
     try:
         with open("aoi.json") as f:
             boundary = json.load(f)
-        folium.GeoJson(boundary, name="Boundary", style_function=lambda x: {"color":"blue","weight":2,"fillOpacity":0}).add_to(m)
+        folium.GeoJson(boundary, name="Boundary",
+                       style_function=lambda x: {"color":"blue","weight":2,"fillOpacity":0}).add_to(m)
     except:
         st.warning("AOI JSON tidak ditemukan atau gagal dibaca.")
 
-
     for _, row in filtered_df.iterrows():
-        folium.CircleMarker(location=[row["latitude"], row["longitude"]],
-                            radius=2, color="red", fill=True, fill_color="red", fill_opacity=1,
-                            popup=(f"<b>Owner:</b> {row['Owner']}<br>"
-                                   f"<b>Desa:</b> {row['Desa']}<br>"
-                                   f"<b>Tanggal:</b> {row['Tanggal'].date()} {row['Jam']}<br>"
-                                   f"<b>Penutup Lahan:</b> {row['Penutup Lahan']}<br>"
-                                   f"<b>Blok:</b> {row['Blok']}")).add_to(m)
+        folium.CircleMarker(
+            location=[row["latitude"], row["longitude"]],
+            radius=2, color="red", fill=True, fill_color="red", fill_opacity=1,
+            popup=(f"<b>Owner:</b> {row['Owner']}<br>"
+                   f"<b>Desa:</b> {row['Desa']}<br>"
+                   f"<b>Tanggal:</b> {row['Tanggal'].date()} {row['Jam']}<br>"
+                   f"<b>Penutup Lahan:</b> {row['Penutup Lahan']}<br>"
+                   f"<b>Blok:</b> {row['Blok']}")
+        ).add_to(m)
 
     folium.LayerControl().add_to(m)
     st_folium(m, width="100%", height=map_height)
