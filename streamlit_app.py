@@ -70,7 +70,7 @@ with left_col:
 
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(location=[row["latitude"], row["longitude"]],
-                            radius=5, color="red", fill=True, fill_color="red", fill_opacity=1,
+                            radius=2, color="red", fill=True, fill_color="red", fill_opacity=1,
                             popup=(f"<b>Owner:</b> {row['Owner']}<br>"
                                    f"<b>Desa:</b> {row['Desa']}<br>"
                                    f"<b>Tanggal:</b> {row['Tanggal'].date()} {row['Jam']}<br>"
