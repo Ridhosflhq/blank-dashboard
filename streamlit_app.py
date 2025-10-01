@@ -100,8 +100,8 @@ with left_col:
         # Buat map
         m = folium.Map(location=[center_lat, center_lon], tiles=basemap_options[selected_basemap])
 
-        # Fit bounds AOI agar seluruh AOI terlihat
-        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(50, 50))
+        # Fit bounds AOI dengan padding lebih kecil → zoom lebih in
+        m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]], padding=(10, 10))
 
         # Tambahkan boundary
         folium.GeoJson(
@@ -117,7 +117,7 @@ with left_col:
     except Exception:
         # Jika aoi.json gagal, pakai default
         m = folium.Map(location=[0.8028, 110.2967],
-                       zoom_start=10,
+                       zoom_start=12,
                        tiles=basemap_options[selected_basemap])
 
     # Tambahkan hotspot
