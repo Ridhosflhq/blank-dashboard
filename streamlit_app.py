@@ -5,12 +5,14 @@ from streamlit_folium import st_folium
 import json
 import plotly.express as px
 
+# Load data
 url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTbJg8ZlumI6gCGSj0ayEiKYeskiVmxtBR81PSjACW-hmAMJFycXtcen-TZ2bJCp23C9g69aMCdXor/pub?output=csv"
 df = pd.read_csv(url)
 
 df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors="coerce")
 df = df[df["Ket"] == "Titik Api"]
 
+# Sidebar filters
 st.sidebar.header("Filter Options")
 min_date, max_date = df["Tanggal"].min().date(), df["Tanggal"].max().date()
 quick_filter = st.sidebar.selectbox(
@@ -46,6 +48,7 @@ basemap_options = {
 }
 selected_basemap = st.sidebar.selectbox("Pilih Basemap", list(basemap_options.keys()))
 
+# Layout utama
 left_col, right_col = st.columns([3, 1])
 
 with left_col:
@@ -53,7 +56,7 @@ with left_col:
         with open("aoi.json", "r") as f:
             boundary = json.load(f)
 
-    
+        # Dapatkan bounds AOI
         bounds_coords = []
         for feature in boundary["features"]:
             coords = feature["geometry"]["coordinates"]
@@ -70,13 +73,13 @@ with left_col:
 
         m = folium.Map(tiles=basemap_options[selected_basemap])
         
-    
+        # Zoom out sedikit supaya tidak nge-pres
         m.fit_bounds(
             [[min_lat - 0.01, min_lon - 0.01], [max_lat + 0.01, max_lon + 0.01]],
             padding=(30, 30)
         )
 
-    
+        # Tambahkan boundary
         folium.GeoJson(
             boundary,
             name="Boundary",
@@ -90,7 +93,7 @@ with left_col:
             tiles=basemap_options[selected_basemap]
         )
 
-
+    # Tambahkan titik hotspot
     for _, row in filtered_df.iterrows():
         folium.CircleMarker(
             location=[row["latitude"], row["longitude"]],
@@ -110,6 +113,7 @@ with left_col:
 
     folium.LayerControl().add_to(m)
 
+    # Sesuaikan tinggi map agar muat 1 halaman
     st_folium(m, width="100%", height=650)
 
 with right_col:
