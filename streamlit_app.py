@@ -53,8 +53,8 @@ left_col, right_col = st.columns([3, 1])
 
 with left_col:
     # ===== Map =====
-    center = [0.8028, 110.2967]
-    m = folium.Map(location=center, zoom_start=12.5, tiles=basemap_options[selected_basemap])
+    center = [0.8240212468388239, 110.3212231153715]
+    m = folium.Map(location=center, zoom_start=12, tiles=basemap_options[selected_basemap])
 
     # ===== AOI Layer =====
     try:
